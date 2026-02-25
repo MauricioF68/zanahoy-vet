@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-
+use Illuminate\Database\Eloquent\Relations\HasOne;
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
@@ -21,6 +21,9 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'phone',
+        'role',
+        'status',
     ];
 
     /**
@@ -41,4 +44,30 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+
+    // --- RELACIONES PARA EL PANEL DE ADMINISTRACIÓN ---
+
+    /**
+     * Relación con el perfil de Experto
+     */
+    public function expertProfile(): HasOne
+    {
+        return $this->hasOne(ExpertProfile::class);
+    }
+
+    /**
+     * Relación con el perfil de Clínica
+     */
+    public function clinicProfile(): HasOne
+    {
+        return $this->hasOne(ClinicProfile::class);
+    }
+
+    /**
+     * Relación con el perfil de Cliente
+     */
+    public function clientProfile(): HasOne
+    {
+        return $this->hasOne(ClientProfile::class);
+    }
 }
