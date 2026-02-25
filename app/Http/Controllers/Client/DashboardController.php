@@ -73,6 +73,9 @@ class DashboardController extends Controller
     /**
      * Procesar el Triaje.
      */
+    /**
+     * Procesar el Triaje (CON IA DE COMBOS)
+     */
     public function storeTriage(Request $request)
     {
         $request->validate([
@@ -81,33 +84,78 @@ class DashboardController extends Controller
             'description' => 'nullable|string'
         ]);
         
-        // ... (Cálculo de pesos igual que antes) ...
-        $selectedSymptoms = Symptom::whereIn('id', $request->symptoms)->get();
-        $totalWeight = $selectedSymptoms->sum('weight');
-        $isCriticalCombo = false; 
+        $pet = Pet::findOrFail($request->pet_id);
+        $userSymptoms = $request->symptoms; // Array con los IDs que marcó el cliente
 
-        // LÓGICA DE ESTADOS NUEVA
-        if ($isCriticalCombo || $totalWeight >= 15) {
-            $priority = 'critical';
-            // CAMBIO: No esperamos experto aun, esperamos decisión del dueño
-            $status = 'waiting_decision'; 
-        } elseif ($totalWeight >= 6) {
-            $priority = 'medium';
-            $status = 'pending_payment';
+        // 1. CÁLCULO CLÁSICO (Por suma de pesos)
+        $selectedSymptoms = Symptom::whereIn('id', $userSymptoms)->get();
+        $totalWeight = $selectedSymptoms->sum('weight');
+
+        // 2. EL CEREBRO DE COMBOS (Buscamos coincidencias)
+        $matchedCombo = null;
+        $systemDiagnosis = null;
+
+        // Buscamos a qué especie pertenece la mascota (perro, gato, etc.)
+        // Asumiendo que guardaste 'dog' o 'cat' en el campo type de la mascota
+        $species = Species::where('slug', $pet->type)->orWhere('name', $pet->type)->first();
+
+        if ($species) {
+            // Traemos los combos de esta especie, ordenados por gravedad (Crítico primero)
+            $combos = \App\Models\SymptomCombo::with('symptoms')
+                        ->where('species_id', $species->id)
+                        ->orderByRaw("FIELD(priority, 'critical', 'medium', 'low')") 
+                        ->get();
+
+            foreach ($combos as $combo) {
+                // Sacamos solo los IDs de los síntomas que requiere este combo
+                $comboSymptomIds = $combo->symptoms->pluck('id')->toArray();
+                
+                // MAGIA INCLUSIVA: Comparamos si TODOS los síntomas del combo están dentro de lo que marcó el usuario
+                $intersection = array_intersect($comboSymptomIds, $userSymptoms);
+                
+                // Si la cantidad de coincidencias es igual a la cantidad que pide el combo... ¡HAY MATCH!
+                if (count($intersection) === count($comboSymptomIds) && count($comboSymptomIds) > 0) {
+                    $matchedCombo = $combo;
+                    $systemDiagnosis = $combo->system_diagnosis;
+                    break; // Detenemos la búsqueda, nos quedamos con el combo más grave que coincidió
+                }
+            }
+        }
+
+        // 3. DEFINIR PRIORIDAD Y ESTADO FINAL (El Combo tiene la última palabra)
+        if ($matchedCombo) {
+            // ¡GANA EL COMBO! Sobrescribimos la matemática
+            $priority = $matchedCombo->priority;
         } else {
-            $priority = 'low';
+            // SI NO HAY COMBO, usamos la suma normal
+            if ($totalWeight >= 15) {
+                $priority = 'critical';
+            } elseif ($totalWeight >= 6) {
+                $priority = 'medium';
+            } else {
+                $priority = 'low';
+            }
+        }
+
+        // 4. ASIGNAR EL ESTADO CORRECTO SEGÚN LA PRIORIDAD
+        if ($priority === 'critical') {
+            $status = 'waiting_decision'; 
+        } else {
             $status = 'pending_payment';
         }
 
+        // 5. GUARDAR EL TRIAJE EN LA BASE DE DATOS
         $triage = Triage::create([
             'user_id' => Auth::id(),
             'pet_id' => $request->pet_id,
-            'symptoms' => json_encode($request->symptoms),
+            'symptoms' => json_encode($userSymptoms),
             'description' => $request->description,
             'priority' => $priority,
-            'status' => $status
+            'status' => $status,
+            'system_diagnosis' => $systemDiagnosis // GUARDAMOS EL DIAGNÓSTICO OCULTO AQUÍ 🕵️‍♂️
         ]);
 
+        // 6. REDIRECCIÓN INTELIGENTE
         if ($priority === 'critical') {
             return redirect()->route('triage.critical', $triage->id);
         } else {
