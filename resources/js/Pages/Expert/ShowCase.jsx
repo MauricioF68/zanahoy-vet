@@ -60,7 +60,19 @@ export default function ShowCase({ auth, triage }) {
                         {/* COLUMNA DATOS */}
                         <div className="md:col-span-1 bg-white p-6 rounded-lg shadow h-fit">
                             <h3 className="font-bold text-gray-700 mb-4 border-b pb-2">📋 Cuadro Clínico</h3>
-                            <p className="text-gray-800 italic">"{triage.description}"</p>
+                            <p className="text-gray-800 italic">"{triage.description || "Sin descripción adicional"}"</p>
+
+                            {/* ALERTA DE LA IA (Solo aparece si el sistema detectó un combo) */}
+                            {triage.system_diagnosis && (
+                                <div className="mt-6 bg-red-50 border-l-4 border-red-600 p-4 rounded-r-lg shadow-sm animate-pulse">
+                                    <h4 className="text-red-800 font-black text-sm uppercase flex items-center mb-1">
+                                        <span className="mr-2 text-lg">🚨</span> Alerta del Sistema
+                                    </h4>
+                                    <p className="text-red-700 text-sm font-medium leading-relaxed">
+                                        {triage.system_diagnosis}
+                                    </p>
+                                </div>
+                            )}
                         </div>
 
                         {/* COLUMNA ACCIÓN (Máquina de Estados) */}

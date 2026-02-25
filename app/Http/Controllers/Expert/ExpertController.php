@@ -36,34 +36,40 @@ class ExpertController extends Controller
     /**
      * TOMAR CASO: El momento de la verdad
      */
+    /**
+     * TOMAR CASO: El momento de la verdad (VERSIÓN CORREGIDA)
+     */
     public function acceptCase($id)
     {
-        // Usamos una transacción para evitar conflictos si 2 doctores clickean a la vez
-        return DB::transaction(function () use ($id) {
+        // 1. Hacemos la operación de Base de Datos y capturamos el resultado
+        $resultado = DB::transaction(function () use ($id) {
             
-            // Bloqueamos la fila para lectura hasta que terminemos (Lock For Update)
             $triage = Triage::lockForUpdate()->find($id);
 
             if (!$triage) {
-                return back()->with('error', 'El caso ya no existe.');
+                return ['error' => 'El caso ya no existe.'];
             }
 
-            // Verificamos si alguien nos ganó por un milisegundo
             if ($triage->expert_id !== null) {
-                return back()->with('error', '¡Lo sentimos! Otro experto tomó este caso hace un instante.');
+                return ['error' => '¡Lo sentimos! Otro experto tomó este caso.'];
             }
 
-            // Si está libre, nos lo asignamos
+            // Asignamos el experto
             $triage->update([
                 'expert_id' => Auth::id(),
-                // Nota: No cambiamos el status aún. 
-                // Si estaba 'pending_payment', sigue así pero ahora es NUESTRO.
-                // Si estaba 'waiting_expert', sigue así y ya veremos el link.
             ]);
 
-            return redirect()->route('expert.case.show', $triage->id)
-                ->with('message', 'Caso aceptado exitosamente.');
+            return ['success' => true, 'triage_id' => $triage->id];
         });
+
+        // 2. Si hubo error, recargamos con el mensaje
+        if (isset($resultado['error'])) {
+            return back()->with('error', $resultado['error']);
+        }
+
+        // 3. Si fue éxito, REDIRIGIMOS (Fuera de la transacción de BD)
+        return redirect()->route('expert.case.show', $resultado['triage_id'])
+            ->with('message', 'Caso aceptado exitosamente.');
     }
 
     /**

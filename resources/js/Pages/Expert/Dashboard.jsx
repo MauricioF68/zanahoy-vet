@@ -5,19 +5,23 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 export default function Dashboard({ auth, availableCases }) {
     const { post, processing } = useForm();
 
-    // POLLING: Actualizar el radar cada 5 segundos
+    // POLLING CORREGIDO: Se detiene si el doctor hace clic en el botón
     useEffect(() => {
+        // Si processing es true (dio clic), NO hacemos el auto-refresh
+        if (processing) return; 
+
         const interval = setInterval(() => {
-            router.reload({ only: ['availableCases'] });
+            // preserveState y preserveScroll evitan que la pantalla parpadee
+            router.reload({ only: ['availableCases'], preserveState: true, preserveScroll: true });
         }, 5000);
+        
         return () => clearInterval(interval);
-    }, []);
+    }, [processing]); // <- Escuchamos la variable processing
 
     const handleAccept = (id) => {
         post(route('expert.case.accept', id));
     };
 
-    // Helper para etiquetas
     const getPriorityColor = (priority) => {
         switch(priority) {
             case 'critical': return 'bg-red-100 text-red-800 border-red-200';
@@ -39,7 +43,7 @@ export default function Dashboard({ auth, availableCases }) {
                             Radar de Casos Disponibles
                         </h1>
                         <span className="text-sm text-gray-500 bg-white px-3 py-1 rounded-full shadow-sm">
-                            Actualizando en tiempo real...
+                            {processing ? 'Procesando tu solicitud...' : 'Actualizando en tiempo real...'}
                         </span>
                     </div>
 
@@ -54,38 +58,42 @@ export default function Dashboard({ auth, availableCases }) {
                             {availableCases.map((triage) => (
                                 <div key={triage.id} className="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1">
                                     
-                                    {/* Encabezado con Gravedad */}
                                     <div className={`px-6 py-3 border-b flex justify-between items-center ${getPriorityColor(triage.priority)}`}>
                                         <span className="font-bold uppercase text-xs tracking-wider">{triage.priority}</span>
                                         <span className="text-xs font-mono">{new Date(triage.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
                                     </div>
 
                                     <div className="p-6">
-                                        {/* Info Mascota */}
                                         <div className="flex items-center mb-4">
                                             <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center text-2xl mr-4">
                                                 {triage.pet.type === 'dog' ? '🐶' : triage.pet.type === 'cat' ? '🐱' : '🐾'}
                                             </div>
                                             <div>
                                                 <h3 className="text-xl font-bold text-gray-800">{triage.pet.name}</h3>
-                                                <p className="text-sm text-gray-500">{triage.pet.breed} • {triage.pet.age_human_years} años</p>
+                                                <p className="text-sm text-gray-500">{triage.pet.breed}</p>
                                             </div>
                                         </div>
 
-                                        {/* Síntomas (Resumen) */}
+                                        {/* SÍNTOMAS E INTELIGENCIA ARTIFICIAL */}
                                         <div className="mb-6">
-                                            <p className="text-xs font-bold text-gray-400 uppercase mb-1">Síntomas / Motivo</p>
+                                            <p className="text-xs font-bold text-gray-400 uppercase mb-1">Motivo de consulta</p>
                                             <div className="text-gray-700 font-medium line-clamp-2 min-h-[3rem]">
-                                                {/* Aquí deberíamos decodificar el JSON de síntomas, por ahora mostramos descripción */}
-                                                {triage.description || "Sin descripción detallada..."}
+                                                {triage.description || "Sin descripción..."}
                                             </div>
+
+                                            {/* AQUI ESTÁ LA ALERTA DE IA QUE FALTABA */}
+                                            {triage.system_diagnosis && (
+                                                <div className="mt-3 bg-red-50 border border-red-200 p-2 rounded-lg text-xs text-red-700 font-bold flex items-start">
+                                                    <span className="mr-1">🤖</span> 
+                                                    <span>{triage.system_diagnosis}</span>
+                                                </div>
+                                            )}
                                         </div>
 
-                                        {/* Botón de Acción */}
                                         <button 
                                             onClick={() => handleAccept(triage.id)}
                                             disabled={processing}
-                                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl shadow-md transition-colors flex items-center justify-center"
+                                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl shadow-md transition-colors flex items-center justify-center disabled:opacity-50"
                                         >
                                             {processing ? (
                                                 <span className="animate-spin mr-2">⏳</span>

@@ -43,7 +43,19 @@ export default function Index({ auth, triages }) {
                                 {/* ... Columnas de Info ... */}
                                 <td className="px-6 py-4">
                                     <div className="text-sm font-bold">{triage.pet.name}</div>
-                                    <div className="text-xs text-gray-500">{new Date(triage.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
+                                    <div className="text-xs text-gray-500 mb-1">
+                                        {new Date(triage.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
+                                    </div>
+                                    
+                                    {/* ALERTA DE LA IA EN EL ADMIN */}
+                                    {triage.system_diagnosis && (
+                                        <div 
+                                            className="mt-2 text-xs font-bold text-red-700 bg-red-50 p-1.5 rounded border border-red-200 line-clamp-2" 
+                                            title={triage.system_diagnosis}
+                                        >
+                                            🤖 IA: {triage.system_diagnosis}
+                                        </div>
+                                    )}
                                 </td>
                                 
                                 <td className="px-6 py-4 text-center">
