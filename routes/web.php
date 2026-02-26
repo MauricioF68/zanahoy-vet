@@ -10,6 +10,7 @@ use App\Http\Controllers\Auth\FinishRegistrationController;
 use App\Http\Controllers\Admin\RequestController;
 use App\Http\Controllers\Client\DashboardController; // Importación unificada
 use App\Http\Controllers\Admin\SpeciesController;
+use App\Http\Controllers\Expert\FinanceController;
 use Inertia\Inertia;
 
 /*
@@ -120,10 +121,15 @@ Route::prefix('admin')->middleware(['auth'])->group(function () {
     Route::post('/symptom-combos', [\App\Http\Controllers\Admin\SymptomComboController::class, 'store'])->name('admin.symptom-combos.store');
     Route::put('/symptom-combos/{id}', [\App\Http\Controllers\Admin\SymptomComboController::class, 'update'])->name('admin.symptom-combos.update');
     Route::delete('/symptom-combos/{id}', [\App\Http\Controllers\Admin\SymptomComboController::class, 'destroy'])->name('admin.symptom-combos.destroy');
+   
 
     // 6. Gestión de Triajes (Torre de Control Médica)
     Route::get('/triages', [\App\Http\Controllers\Admin\TriageController::class, 'index'])->name('admin.triages.index');
     Route::post('/triages/{id}/approve-payment', [\App\Http\Controllers\Admin\TriageController::class, 'approvePayment'])->name('admin.triages.approve_payment');
+
+    // 7. MÓDULO DE FINANZAS Y PAGOS (ERP) 💰
+    Route::get('/finance', [\App\Http\Controllers\Admin\FinanceController::class, 'index'])->name('admin.finance.index');
+    Route::post('/finance/{id}/approve', [\App\Http\Controllers\Admin\FinanceController::class, 'approvePayment'])->name('admin.finance.approve');
 
 });
 
@@ -144,6 +150,8 @@ Route::middleware(['auth', 'verified'])->prefix('expert')->name('expert.')->grou
     // Área de trabajo (Detalle del caso)
     Route::get('/cases/{id}', [\App\Http\Controllers\Expert\ExpertController::class, 'showCase'])->name('case.show');
 
+    // NUEVO: Cerrar caso y guardar historial
+    Route::post('/cases/{id}/close', [\App\Http\Controllers\Expert\ExpertController::class, 'closeCase'])->name('case.close');
 });
 
 require __DIR__.'/auth.php';

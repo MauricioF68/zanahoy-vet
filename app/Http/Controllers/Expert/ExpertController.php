@@ -19,7 +19,7 @@ class ExpertController extends Controller
         $availableCases = Triage::with(['pet', 'user'])
             ->whereNull('expert_id')
             // AQUI AGREGAMOS 'waiting_decision'
-            ->whereIn('status', ['pending_payment', 'waiting_expert', 'waiting_decision'])
+            ->whereIn('status', ['pending_payment', 'waiting_expert', 'waiting_decision', 'in_progress'])
             ->where(function($q) {
                 $q->whereNull('user_decision')
                   ->orWhere('user_decision', '!=', 'goto_clinic');
@@ -33,15 +33,8 @@ class ExpertController extends Controller
         ]);
     }
 
-    /**
-     * TOMAR CASO: El momento de la verdad
-     */
-    /**
-     * TOMAR CASO: El momento de la verdad (VERSIÓN CORREGIDA)
-     */
-    public function acceptCase($id)
+   public function acceptCase($id)
     {
-        // 1. Hacemos la operación de Base de Datos y capturamos el resultado
         $resultado = DB::transaction(function () use ($id) {
             
             $triage = Triage::lockForUpdate()->find($id);
@@ -54,20 +47,28 @@ class ExpertController extends Controller
                 return ['error' => '¡Lo sentimos! Otro experto tomó este caso.'];
             }
 
-            // Asignamos el experto
+            // --- CORRECCIÓN: Generar Jitsi si no existe (Para casos normales) ---
+            $meetingLink = $triage->meeting_link;
+            if (!$meetingLink) {
+                $roomName = 'zanahoy-case-' . $triage->id . '-' . \Illuminate\Support\Str::random(5);
+                $meetingLink = "https://meet.jit.si/" . $roomName;
+            }
+
+            // Asignamos el experto, el link de Jitsi y cambiamos el estado
             $triage->update([
                 'expert_id' => Auth::id(),
+                'status' => 'in_progress', // ¡CLAVE PARA DETENER LA RECARGA!
+                'meeting_link' => $meetingLink
             ]);
 
             return ['success' => true, 'triage_id' => $triage->id];
         });
 
-        // 2. Si hubo error, recargamos con el mensaje
+        // ... (El resto de la función queda igual con sus returns)
         if (isset($resultado['error'])) {
             return back()->with('error', $resultado['error']);
         }
 
-        // 3. Si fue éxito, REDIRIGIMOS (Fuera de la transacción de BD)
         return redirect()->route('expert.case.show', $resultado['triage_id'])
             ->with('message', 'Caso aceptado exitosamente.');
     }
@@ -87,5 +88,48 @@ class ExpertController extends Controller
         return Inertia::render('Expert/ShowCase', [
             'triage' => $triage
         ]);
+    }
+
+    /**
+     * CERRAR CASO: Guardar historial médico y aplicar reglas financieras
+     */
+    public function closeCase(Request $request, $id)
+    {           
+        $triage = Triage::findOrFail($id);
+
+        // Seguridad: Solo el experto dueño puede cerrar esto
+        if ($triage->expert_id !== Auth::id()) {
+            abort(403, 'No tienes permiso para modificar este caso.');
+        }
+
+        // Validamos que al menos ponga el diagnóstico principal
+        $request->validate([
+            'presumptive_diagnosis' => 'required|string|max:255',
+            'anamnesis' => 'nullable|string',
+            'prescription' => 'nullable|string',
+            'medical_instructions' => 'nullable|string',
+        ]);
+
+        // --- 💰 LA REGLA DE ORO FINANCIERA ---
+        $newPaymentStatus = $triage->payment_status;
+        
+        // Si el pago seguía "pendiente" (porque era una emergencia crítica que pasó directo)
+        // al momento de dar el alta, el cliente oficialmente se convierte en "deudor".
+        if ($triage->payment_status === 'pending') {
+            $newPaymentStatus = 'debtor';
+        }
+
+        // Guardamos todo en la base de datos
+        $triage->update([
+            'presumptive_diagnosis' => $request->presumptive_diagnosis,
+            'anamnesis' => $request->anamnesis,
+            'prescription' => $request->prescription,
+            'medical_instructions' => $request->medical_instructions,
+            'status' => 'completed', // El caso sale de emergencias
+            'is_attended' => true,   // Confirmamos que el médico lo vio
+            'payment_status' => $newPaymentStatus // Aplicamos el candado si aplica
+        ]);
+
+        return redirect()->route('expert.dashboard')->with('message', '¡Caso finalizado! El historial clínico ha sido guardado con éxito.');
     }
 }

@@ -1,30 +1,44 @@
 import React, { useEffect, useState } from 'react';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import InputLabel from '@/Components/InputLabel';
+import TextInput from '@/Components/TextInput';
 
 export default function ShowCase({ auth, triage }) {
-    const [timeLeft, setTimeLeft] = useState(60); // 60 segundos de espera
+    const [timeLeft, setTimeLeft] = useState(60); 
     
-    // Polling Inteligente
+    // Formulario del Historial Médico
+    const { data, setData, post, processing, errors } = useForm({
+        presumptive_diagnosis: '',
+        anamnesis: '',
+        prescription: '',
+        medical_instructions: ''
+    });
+    
     useEffect(() => {
-        // Solo recargamos si no hay decisión tomada o falta pago
-        const needsUpdate = !triage.user_decision || triage.status === 'pending_payment';
+        const needsUpdate = triage.status === 'waiting_decision' || triage.status === 'pending_payment';
         
         if (needsUpdate) {
             const interval = setInterval(() => {
                 router.reload({ only: ['triage'] });
-            }, 3000); // Rápido (3s) para emergencias
+            }, 3000); 
             return () => clearInterval(interval);
         }
-    }, [triage.user_decision, triage.status]);
+    }, [triage.status])
 
-    // Cuenta Regresiva (Solo para estado waiting_decision)
     useEffect(() => {
         if (triage.status === 'waiting_decision' && timeLeft > 0) {
             const timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
             return () => clearInterval(timer);
         }
     }, [triage.status, timeLeft]);
+
+    const handleCloseCase = (e) => {
+        e.preventDefault();
+        if(confirm('¿Seguro que deseas finalizar la consulta y emitir este informe?')) {
+            post(route('expert.case.close', triage.id));
+        }
+    };
 
     const isCritical = triage.priority === 'critical';
     const waitingDecision = triage.status === 'waiting_decision';
@@ -56,82 +70,134 @@ export default function ShowCase({ auth, triage }) {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {/* COLUMNA DATOS */}
-                        <div className="md:col-span-1 bg-white p-6 rounded-lg shadow h-fit">
-                            <h3 className="font-bold text-gray-700 mb-4 border-b pb-2">📋 Cuadro Clínico</h3>
-                            <p className="text-gray-800 italic">"{triage.description || "Sin descripción adicional"}"</p>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* COLUMNA IZQUIERDA: DATOS Y CONEXIÓN */}
+                        <div className="lg:col-span-1 space-y-6">
+                            <div className="bg-white p-6 rounded-lg shadow h-fit">
+                                <h3 className="font-bold text-gray-700 mb-4 border-b pb-2">📋 Cuadro Clínico del Dueño</h3>
+                                <p className="text-gray-800 italic">"{triage.description || "Sin descripción adicional"}"</p>
 
-                            {/* ALERTA DE LA IA (Solo aparece si el sistema detectó un combo) */}
-                            {triage.system_diagnosis && (
-                                <div className="mt-6 bg-red-50 border-l-4 border-red-600 p-4 rounded-r-lg shadow-sm animate-pulse">
-                                    <h4 className="text-red-800 font-black text-sm uppercase flex items-center mb-1">
-                                        <span className="mr-2 text-lg">🚨</span> Alerta del Sistema
-                                    </h4>
-                                    <p className="text-red-700 text-sm font-medium leading-relaxed">
-                                        {triage.system_diagnosis}
-                                    </p>
-                                </div>
-                            )}
-                        </div>
+                                {triage.system_diagnosis && (
+                                    <div className="mt-6 bg-red-50 border-l-4 border-red-600 p-4 rounded-r-lg shadow-sm">
+                                        <h4 className="text-red-800 font-black text-sm uppercase flex items-center mb-1">
+                                            <span className="mr-2 text-lg">🚨</span> Alerta del Sistema
+                                        </h4>
+                                        <p className="text-red-700 text-sm font-medium leading-relaxed">
+                                            {triage.system_diagnosis}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
 
-                        {/* COLUMNA ACCIÓN (Máquina de Estados) */}
-                        <div className="md:col-span-2 space-y-6">
-                            
-                            {/* ESCENARIO 1: ESPERANDO DECISIÓN (CRÍTICO) */}
+                            {/* ESTADOS DE ESPERA */}
                             {waitingDecision && (
-                                <div className="bg-red-50 border-2 border-red-400 p-8 rounded-2xl text-center shadow-lg">
+                                <div className="bg-red-50 border-2 border-red-400 p-6 rounded-xl text-center shadow">
                                     {timeLeft > 0 ? (
                                         <>
-                                            <div className="text-5xl font-mono font-black text-red-600 mb-2">00:{timeLeft < 10 ? `0${timeLeft}` : timeLeft}</div>
-                                            <h2 className="text-2xl font-bold text-red-800">Esperando al Cliente...</h2>
-                                            <p className="text-red-700 mt-2">El dueño está viendo la alerta roja. Espera a que solicite conexión.</p>
-                                            <div className="mt-4 flex justify-center">
-                                                <span className="animate-ping h-4 w-4 rounded-full bg-red-500 opacity-75"></span>
-                                            </div>
+                                            <div className="text-4xl font-mono font-black text-red-600 mb-2">00:{timeLeft < 10 ? `0${timeLeft}` : timeLeft}</div>
+                                            <h2 className="text-lg font-bold text-red-800">Esperando al Cliente...</h2>
                                         </>
                                     ) : (
                                         <>
-                                            <div className="text-4xl mb-4">💨</div>
-                                            <h2 className="text-xl font-bold text-gray-700">Tiempo Agotado</h2>
-                                            <p className="text-gray-500">Es probable que el cliente haya corrido a la clínica.</p>
-                                            <a href={route('expert.dashboard')} className="mt-4 inline-block bg-gray-600 text-white px-6 py-2 rounded-lg font-bold">
-                                                Liberar Caso
-                                            </a>
+                                            <h2 className="text-lg font-bold text-gray-700">Tiempo Agotado</h2>
+                                            <a href={route('expert.dashboard')} className="mt-4 inline-block bg-gray-600 text-white px-4 py-2 rounded-lg font-bold">Liberar Caso</a>
                                         </>
                                     )}
                                 </div>
                             )}
 
-                            {/* ESCENARIO 2: SE FUE A CLÍNICA */}
                             {goneToClinic && (
-                                <div className="bg-gray-100 border-2 border-gray-300 p-8 rounded-2xl text-center">
-                                    <h2 className="text-xl font-bold text-gray-600">El cliente decidió ir a una clínica.</h2>
-                                    <a href={route('expert.dashboard')} className="mt-4 inline-block bg-blue-600 text-white px-6 py-2 rounded-lg font-bold">
-                                        Volver al Radar
-                                    </a>
+                                <div className="bg-gray-100 border-2 border-gray-300 p-6 rounded-xl text-center">
+                                    <h2 className="text-lg font-bold text-gray-600">El cliente decidió ir a clínica presencial.</h2>
+                                    <a href={route('expert.dashboard')} className="mt-4 inline-block bg-blue-600 text-white px-4 py-2 rounded-lg font-bold">Volver al Radar</a>
                                 </div>
                             )}
 
-                            {/* ESCENARIO 3: ESPERANDO PAGO (NORMAL) */}
                             {waitingPayment && (
-                                <div className="bg-yellow-50 border-2 border-yellow-400 p-8 rounded-2xl text-center">
-                                    <h2 className="text-2xl font-bold text-yellow-800">Esperando Pago...</h2>
-                                    <p className="text-yellow-700">El cliente está subiendo el comprobante.</p>
+                                <div className="bg-yellow-50 border-2 border-yellow-400 p-6 rounded-xl text-center">
+                                    <h2 className="text-lg font-bold text-yellow-800">Esperando Pago...</h2>
+                                    <p className="text-sm text-yellow-700">El cliente está subiendo su voucher.</p>
                                 </div>
                             )}
+                        </div>
 
-                            {/* ESCENARIO 4: ÉXITO - VIDEOLLAMADA */}
+                        {/* COLUMNA DERECHA: CONSULTORIO EN VIVO */}
+                        <div className="lg:col-span-2">
                             {triage.meeting_link && !goneToClinic && (
-                                <div className="bg-green-50 border-2 border-green-500 p-8 rounded-2xl text-center shadow-xl">
-                                    <h2 className="text-3xl font-black text-green-800 mb-4">¡Conexión Confirmada!</h2>
-                                    <a href={triage.meeting_link} target="_blank" className="inline-block bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-8 rounded-xl text-xl shadow-lg transform transition hover:scale-105">
-                                        INICIAR VIDEOLLAMADA
-                                    </a>
+                                <div className="bg-white rounded-lg shadow overflow-hidden border border-gray-200">
+                                    
+                                    {/* BOTÓN JITSI */}
+                                    <div className="bg-slate-800 p-6 flex flex-col items-center justify-center text-center">
+                                        <h2 className="text-xl font-bold text-white mb-4">Sala Médica Abierta</h2>
+                                        <a href={triage.meeting_link} target="_blank" rel="noopener noreferrer" className="bg-indigo-500 hover:bg-indigo-600 text-white font-black py-3 px-8 rounded-lg text-lg shadow-lg transform transition hover:scale-105 flex items-center">
+                                            <span className="mr-2 text-2xl">📹</span> INICIAR VIDEOLLAMADA
+                                        </a>
+                                        <p className="text-slate-400 text-xs mt-3">Abre la llamada en otra pestaña y llena el informe aquí abajo.</p>
+                                    </div>
+
+                                    {/* FORMULARIO DE HISTORIA CLÍNICA */}
+                                    <div className="p-6 bg-gray-50 border-t">
+                                        <h3 className="font-black text-gray-800 text-lg mb-4 flex items-center">
+                                            <span className="mr-2">📝</span> Informe Médico (Se guardará al finalizar)
+                                        </h3>
+
+                                        <form onSubmit={handleCloseCase} className="space-y-4">
+                                            <div>
+                                                <InputLabel value="Diagnóstico Presuntivo (El Titular) *" />
+                                                <TextInput 
+                                                    className="w-full mt-1 font-bold text-indigo-900 bg-white" 
+                                                    placeholder="Ej: Gastroenteritis aguda" 
+                                                    value={data.presumptive_diagnosis}
+                                                    onChange={e => setData('presumptive_diagnosis', e.target.value)}
+                                                    required 
+                                                />
+                                                {errors.presumptive_diagnosis && <span className="text-red-500 text-xs">{errors.presumptive_diagnosis}</span>}
+                                            </div>
+
+                                            <div>
+                                                <InputLabel value="Anamnesis / Observaciones (Oculto si hay deuda)" />
+                                                <textarea 
+                                                    className="w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm mt-1 text-sm bg-white" 
+                                                    rows="3" placeholder="Anotaciones de lo observado en la consulta..."
+                                                    value={data.anamnesis} onChange={e => setData('anamnesis', e.target.value)}
+                                                ></textarea>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <InputLabel value="Receta Médica 💊 (Oculto si hay deuda)" />
+                                                    <textarea 
+                                                        className="w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm mt-1 text-sm bg-white" 
+                                                        rows="4" placeholder="Ej: Omeprazol 10mg - 1 pastilla cada 24h"
+                                                        value={data.prescription} onChange={e => setData('prescription', e.target.value)}
+                                                    ></textarea>
+                                                </div>
+                                                <div>
+                                                    <InputLabel value="Cuidados Generales 🏠 (Oculto si hay deuda)" />
+                                                    <textarea 
+                                                        className="w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm mt-1 text-sm bg-white" 
+                                                        rows="4" placeholder="Ej: Dieta blanda por 3 días, reposo absoluto."
+                                                        value={data.medical_instructions} onChange={e => setData('medical_instructions', e.target.value)}
+                                                    ></textarea>
+                                                </div>
+                                            </div>
+
+                                            <div className="pt-6 mt-6 border-t flex justify-end">
+                                                <button 
+                                                    type="submit" 
+                                                    disabled={processing}
+                                                    className="bg-green-600 hover:bg-green-700 text-white font-black py-3 px-8 rounded-lg shadow-lg flex items-center transition-colors disabled:opacity-50"
+                                                >
+                                                    {processing ? 'GUARDANDO...' : '✔️ GUARDAR Y DAR DE ALTA'}
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
                                 </div>
                             )}
                         </div>
                     </div>
+
                 </div>
             </div>
         </AuthenticatedLayout>

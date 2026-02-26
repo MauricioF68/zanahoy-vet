@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react';
-import { Head, useForm, router } from '@inertiajs/react';
+import { Head, useForm, router,usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 
 export default function Dashboard({ auth, availableCases }) {
     const { post, processing } = useForm();
+    const { flash } = usePage().props;
 
     // POLLING CORREGIDO: Se detiene si el doctor hace clic en el botón
     useEffect(() => {

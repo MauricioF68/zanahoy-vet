@@ -76,6 +76,9 @@ class DashboardController extends Controller
     /**
      * Procesar el Triaje (CON IA DE COMBOS)
      */
+    /**
+     * Procesar el Triaje (CON IA DE COMBOS + FINANZAS AUTOMÁTICAS)
+     */
     public function storeTriage(Request $request)
     {
         $request->validate([
@@ -85,49 +88,40 @@ class DashboardController extends Controller
         ]);
         
         $pet = Pet::findOrFail($request->pet_id);
-        $userSymptoms = $request->symptoms; // Array con los IDs que marcó el cliente
+        $userSymptoms = $request->symptoms; 
 
-        // 1. CÁLCULO CLÁSICO (Por suma de pesos)
+        // 1. CÁLCULO CLÁSICO
         $selectedSymptoms = Symptom::whereIn('id', $userSymptoms)->get();
         $totalWeight = $selectedSymptoms->sum('weight');
 
-        // 2. EL CEREBRO DE COMBOS (Buscamos coincidencias)
+        // 2. EL CEREBRO DE COMBOS
         $matchedCombo = null;
         $systemDiagnosis = null;
 
-        // Buscamos a qué especie pertenece la mascota (perro, gato, etc.)
-        // Asumiendo que guardaste 'dog' o 'cat' en el campo type de la mascota
         $species = Species::where('slug', $pet->type)->orWhere('name', $pet->type)->first();
 
         if ($species) {
-            // Traemos los combos de esta especie, ordenados por gravedad (Crítico primero)
             $combos = \App\Models\SymptomCombo::with('symptoms')
                         ->where('species_id', $species->id)
                         ->orderByRaw("FIELD(priority, 'critical', 'medium', 'low')") 
                         ->get();
 
             foreach ($combos as $combo) {
-                // Sacamos solo los IDs de los síntomas que requiere este combo
                 $comboSymptomIds = $combo->symptoms->pluck('id')->toArray();
-                
-                // MAGIA INCLUSIVA: Comparamos si TODOS los síntomas del combo están dentro de lo que marcó el usuario
                 $intersection = array_intersect($comboSymptomIds, $userSymptoms);
                 
-                // Si la cantidad de coincidencias es igual a la cantidad que pide el combo... ¡HAY MATCH!
                 if (count($intersection) === count($comboSymptomIds) && count($comboSymptomIds) > 0) {
                     $matchedCombo = $combo;
                     $systemDiagnosis = $combo->system_diagnosis;
-                    break; // Detenemos la búsqueda, nos quedamos con el combo más grave que coincidió
+                    break; 
                 }
             }
         }
 
-        // 3. DEFINIR PRIORIDAD Y ESTADO FINAL (El Combo tiene la última palabra)
+        // 3. DEFINIR PRIORIDAD Y ESTADO FINAL
         if ($matchedCombo) {
-            // ¡GANA EL COMBO! Sobrescribimos la matemática
             $priority = $matchedCombo->priority;
         } else {
-            // SI NO HAY COMBO, usamos la suma normal
             if ($totalWeight >= 15) {
                 $priority = 'critical';
             } elseif ($totalWeight >= 6) {
@@ -137,14 +131,17 @@ class DashboardController extends Controller
             }
         }
 
-        // 4. ASIGNAR EL ESTADO CORRECTO SEGÚN LA PRIORIDAD
         if ($priority === 'critical') {
             $status = 'waiting_decision'; 
         } else {
             $status = 'pending_payment';
         }
 
-        // 5. GUARDAR EL TRIAJE EN LA BASE DE DATOS
+        // --- 💰 NUEVO: LÓGICA DE PRECIOS AUTOMÁTICA ---
+        // Puedes cambiar estos montos según tu modelo de negocio
+        $amount = ($priority === 'critical') ? 50.00 : 30.00;
+
+        // 4. GUARDAR EL TRIAJE
         $triage = Triage::create([
             'user_id' => Auth::id(),
             'pet_id' => $request->pet_id,
@@ -152,10 +149,16 @@ class DashboardController extends Controller
             'description' => $request->description,
             'priority' => $priority,
             'status' => $status,
-            'system_diagnosis' => $systemDiagnosis // GUARDAMOS EL DIAGNÓSTICO OCULTO AQUÍ 🕵️‍♂️
+            'system_diagnosis' => $systemDiagnosis,
+            'amount' => $amount // Guardamos el precio
         ]);
 
-        // 6. REDIRECCIÓN INTELIGENTE
+        // --- 🧾 NUEVO: GENERAR CÓDIGO ÚNICO (Ej: FAC-00015) ---
+        // Usamos str_pad para que siempre tenga 5 ceros a la izquierda
+        $paymentCode = 'FAC-' . str_pad($triage->id, 5, '0', STR_PAD_LEFT);
+        $triage->update(['payment_code' => $paymentCode]);
+
+        // 5. REDIRECCIÓN
         if ($priority === 'critical') {
             return redirect()->route('triage.critical', $triage->id);
         } else {
