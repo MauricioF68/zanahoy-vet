@@ -80,6 +80,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // HISTORIAL MÉDICO DE LA MASCOTA    
+    Route::get('/historial-clinico', [DashboardController::class, 'generalHistory'])->name('client.history');
 });
 
 /*
@@ -152,6 +155,8 @@ Route::middleware(['auth', 'verified'])->prefix('expert')->name('expert.')->grou
 
     // NUEVO: Cerrar caso y guardar historial
     Route::post('/cases/{id}/close', [\App\Http\Controllers\Expert\ExpertController::class, 'closeCase'])->name('case.close');
+
+    
 });
 
 require __DIR__.'/auth.php';

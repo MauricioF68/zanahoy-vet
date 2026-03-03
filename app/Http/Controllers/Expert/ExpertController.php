@@ -35,7 +35,7 @@ class ExpertController extends Controller
 
    public function acceptCase($id)
     {
-        $resultado = DB::transaction(function () use ($id) {
+        $resultado = \Illuminate\Support\Facades\DB::transaction(function () use ($id) {
             
             $triage = Triage::lockForUpdate()->find($id);
 
@@ -47,30 +47,39 @@ class ExpertController extends Controller
                 return ['error' => '¡Lo sentimos! Otro experto tomó este caso.'];
             }
 
-            // --- CORRECCIÓN: Generar Jitsi si no existe (Para casos normales) ---
-            $meetingLink = $triage->meeting_link;
-            if (!$meetingLink) {
-                $roomName = 'zanahoy-case-' . $triage->id . '-' . \Illuminate\Support\Str::random(5);
-                $meetingLink = "https://meet.jit.si/" . $roomName;
-            }
+            // 🛑 LA REGLA: Si falta validar pago, el experto se empareja, 
+            // pero NO se crea el link de Jitsi ni se cambia a in_progress.
+            if ($triage->status === 'pending_payment') {
+                $triage->update([
+                    'expert_id' => \Illuminate\Support\Facades\Auth::id()
+                    // NO tocamos el meeting_link ni el status. 
+                    // Tu vista de React ShowCase.jsx mostrará "Esperando Pago..."
+                ]);
+            } 
+            // Si el Admin ya validó, o si es un caso crítico (directo)
+            else {
+                $meetingLink = $triage->meeting_link;
+                if (!$meetingLink) {
+                    $roomName = 'zanahoy-case-' . $triage->id . '-' . \Illuminate\Support\Str::random(5);
+                    $meetingLink = "https://meet.jit.si/" . $roomName;
+                }
 
-            // Asignamos el experto, el link de Jitsi y cambiamos el estado
-            $triage->update([
-                'expert_id' => Auth::id(),
-                'status' => 'in_progress', // ¡CLAVE PARA DETENER LA RECARGA!
-                'meeting_link' => $meetingLink
-            ]);
+                $triage->update([
+                    'expert_id' => \Illuminate\Support\Facades\Auth::id(),
+                    'status' => 'in_progress', 
+                    'meeting_link' => $meetingLink
+                ]);
+            }
 
             return ['success' => true, 'triage_id' => $triage->id];
         });
 
-        // ... (El resto de la función queda igual con sus returns)
         if (isset($resultado['error'])) {
             return back()->with('error', $resultado['error']);
         }
 
         return redirect()->route('expert.case.show', $resultado['triage_id'])
-            ->with('message', 'Caso aceptado exitosamente.');
+            ->with('message', 'Caso reservado. Esperando validación...');
     }
 
     /**

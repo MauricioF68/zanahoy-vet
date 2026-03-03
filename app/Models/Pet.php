@@ -27,4 +27,8 @@ class Pet extends Model
     {
         return $this->belongsTo(User::class);
     }
+    public function triages()
+    {
+        return $this->hasMany(Triage::class);
+    }
 }

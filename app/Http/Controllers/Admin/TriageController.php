@@ -31,30 +31,45 @@ class TriageController extends Controller
      * ACCIÓN 1: VALIDAR PAGO (Para casos Verdes/Amarillos)
      * Al aprobar, generamos el link y buscamos experto.
      */
+    /**
+     * ACCIÓN 1: VALIDAR PAGO (Para casos Verdes/Amarillos)
+     * Al aprobar, generamos el link y buscamos experto.
+     */
+    /**
+     * ACCIÓN 1: VALIDAR PAGO (Para casos Verdes/Amarillos)
+     * Al aprobar, generamos el link y evaluamos si ya había experto.
+     */
+    /**
+     * ACCIÓN 1: VALIDAR PAGO (Para abrir sala OR para desbloquear historial)
+     */
     public function approvePayment($id)
     {
         $triage = Triage::findOrFail($id);
 
-        // Solo actuamos si está esperando pago
+        // ESCENARIO A: Pago ANTES de la consulta (Genera Link de Videollamada)
         if ($triage->status === 'pending_payment') {
             
-            // 1. Generamos el Link de Jitsi Automático
-            // Ej: https://meet.jit.si/zanahoy-case-15-xky7z
-            $roomName = 'zanahoy-case-' . $triage->id . '-' . Str::random(5);
+            $roomName = 'zanahoy-case-' . $triage->id . '-' . \Illuminate\Support\Str::random(5);
             $meetingLink = "https://meet.jit.si/" . $roomName;
+            $newStatus = $triage->expert_id ? 'in_progress' : 'waiting_expert';
 
-            // 2. Actualizamos el estado
             $triage->update([
-                'status' => 'waiting_expert', // Ahora los doctores lo pueden ver
+                'status' => $newStatus,
                 'meeting_link' => $meetingLink,
-                'is_paid' => true // (Asumiendo que agregaremos este campo luego, o usamos el status)
+                'is_paid' => true,
+                'payment_status' => 'paid' 
             ]);
+        }
+        // ESCENARIO B: Pago DESPUÉS de la consulta (Quita el Candado del Historial)
+        else if ($triage->status === 'completed' && $triage->payment_status === 'pending') {
             
-            // AQUÍ IRÍA LA LÓGICA DE NOTIFICACIÓN PUSH A LOS VETERINARIOS
-            // Notification::send($experts, new NewCaseAvailable($triage));
+            $triage->update([
+                'is_paid' => true,
+                'payment_status' => 'paid' // ⬅️ Esto destruye el candado al instante
+            ]);
         }
 
-        return back()->with('message', 'Pago validado. El caso está visible para los expertos.');
+        return back()->with('message', 'Pago validado. El sistema ha sido actualizado.');
     }
 
     /**

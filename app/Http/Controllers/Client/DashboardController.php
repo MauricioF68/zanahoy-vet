@@ -18,19 +18,25 @@ class DashboardController extends Controller
     /**
      * Muestra el Dashboard principal del cliente.
      */
+    /**
+     * Muestra el Dashboard principal del cliente.
+     */
     public function index()
     {
         $user = Auth::user();
 
-        // 1. Mascotas del usuario
-        $pets = Pet::where('user_id', $user->id)->latest()->get();
+        // 1. Mascotas del usuario (¡AHORA CARGANDO SU HISTORIAL MÉDICO!)
+        $pets = Pet::with(['triages' => function($query) {
+            $query->orderBy('created_at', 'desc'); // Traemos las consultas más recientes primero
+        }])
+        ->where('user_id', $user->id)
+        ->latest()
+        ->get();
 
         // 2. Lista de Especies (Para el select de "Nueva Mascota")
-        // Es vital enviar el 'slug' (dog, cat) y el 'id' para hacer el match
         $speciesList = Species::where('is_active', true)->get();
         
         // 3. Categorías y Síntomas (El menú completo)
-        // Cargamos la relación 'species' para saber de quién es cada categoría
         $symptomCategories = SymptomCategory::with(['species', 'symptoms' => function($query) {
             $query->where('is_active', true);
         }])->get();
@@ -226,6 +232,9 @@ class DashboardController extends Controller
     /**
      * Subir Comprobante de Pago
      */
+    /**
+     * Subir Comprobante de Pago (Y cambiar estado a En Revisión)
+     */
     public function uploadPayment(Request $request)
     {
         $request->validate([
@@ -241,12 +250,33 @@ class DashboardController extends Controller
             $path = $request->file('payment_proof')->store('payments', 'public');
             
             $triage->update([
-                'payment_proof_path' => $path
-                // No cambiamos status aun, el admin debe validar.
+                'payment_proof_path' => $path,
+                'payment_status' => 'pending' // ⬅️ MAGIA: Esto activa el mensaje de "Validando Pago" en el frontend
             ]);
         }
 
         return back()->with('message', 'Comprobante subido. Esperando validación...');
+    }
+
+    /**
+     * HISTORIAL CLÍNICO GENERAL (Vista con Pestañas)
+     */
+    public function generalHistory()
+    {
+        $user = Auth::user();
+
+        // Traemos todas las mascotas del usuario con sus historiales médicos cerrados
+        $pets = Pet::with(['triages' => function($query) {
+            $query->where('is_attended', true)
+                  ->orderBy('created_at', 'desc')
+                  ->with('expert'); // Traemos al doctor también
+        }])
+        ->where('user_id', $user->id)
+        ->get();
+
+        return Inertia::render('Client/GeneralHistory', [
+            'pets' => $pets
+        ]);
     }
 
 

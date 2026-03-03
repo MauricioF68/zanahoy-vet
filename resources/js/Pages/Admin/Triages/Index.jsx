@@ -84,17 +84,17 @@ export default function Index({ auth, triages }) {
                                     )}
                                 </td>
 
-                                <td className="px-6 py-4 text-right">
-                                    {triage.status === 'pending_payment' && (
+                                <td className="px-6 py-4 text-right">                                    
+                                    {(triage.status === 'pending_payment' || (triage.status === 'completed' && triage.payment_status === 'pending' && triage.payment_proof_path)) && (
                                         <button 
                                             onClick={() => handleApprovePayment(triage.id)}
-                                            // Desactivado si NO hay foto (opcional, según tu lógica)
                                             disabled={processing || !triage.payment_proof_path} 
                                             className={`font-bold py-1 px-3 rounded shadow text-white ${!triage.payment_proof_path ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
                                         >
                                             $$ Validar
                                         </button>
                                     )}
+
                                     {triage.meeting_link && (
                                         <a href={triage.meeting_link} target="_blank" className="text-indigo-600 underline font-bold">Jitsi</a>
                                     )}
