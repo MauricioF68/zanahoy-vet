@@ -83,6 +83,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // HISTORIAL MÉDICO DE LA MASCOTA    
     Route::get('/historial-clinico', [DashboardController::class, 'generalHistory'])->name('client.history');
+
+    // MÓDULO DE PAGOS DEL CLIENTE
+    Route::get('/mis-pagos', [DashboardController::class, 'myPayments'])->name('client.payments');
 });
 
 /*

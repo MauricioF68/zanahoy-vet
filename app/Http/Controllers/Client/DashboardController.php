@@ -279,5 +279,35 @@ class DashboardController extends Controller
         ]);
     }
 
+    /**
+     * MÓDULO DE PAGOS: Estado de cuenta del cliente
+     */
+    public function myPayments()
+    {
+        $user = Auth::user();
+
+        // Traemos todos los triajes del cliente (que generaron cobro)
+        $allTriages = Triage::with('pet')
+            ->where('user_id', $user->id)
+            ->whereNotNull('payment_status') // Solo los que pasaron por caja
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Separamos en 3 cajas perfectas para el Frontend
+        $pendingPayments = $allTriages->where('payment_status', 'debtor')->values();
+        
+        $inValidation = $allTriages->where('payment_status', 'pending')
+                                   ->whereNotNull('payment_proof_path')
+                                   ->values();
+                                   
+        $paidHistory = $allTriages->where('payment_status', 'paid')->values();
+
+        return Inertia::render('Client/Payments', [
+            'pendingPayments' => $pendingPayments,
+            'inValidation' => $inValidation,
+            'paidHistory' => $paidHistory
+        ]);
+    }
+
 
 }
