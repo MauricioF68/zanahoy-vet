@@ -1,25 +1,92 @@
 import React, { useState } from 'react';
-import { Head } from '@inertiajs/react';
+import { Head, useForm } from '@inertiajs/react';
 import ClientLayout from '@/Layouts/ClientLayout';
 import Modal from '@/Components/Modal';
 
-export default function Payments({ auth, inValidation, paidHistory }) {
+// 👇 NOTA: Ahora recibimos 'pendingPayments' como prop
+export default function Payments({ auth, pendingPayments, inValidation, paidHistory }) {
     
-    // Estado para controlar qué foto de comprobante se muestra en el modal
+    // Estado para ver fotos de historial
     const [selectedReceipt, setSelectedReceipt] = useState(null);
+    
+    // Estados y Formulario para pagar deudas
+    const [selectedDebt, setSelectedDebt] = useState(null); 
+    const { data, setData, post, processing, errors, reset } = useForm({
+        triage_id: '',
+        payment_proof: null
+    });
+
+    const openPaymentModal = (triageId) => {
+        setData('triage_id', triageId);
+        setSelectedDebt(triageId);
+    };
+
+    const submitPayment = (e) => {
+        e.preventDefault();
+        post(route('triage.payment'), {
+            onSuccess: () => {
+                setSelectedDebt(null);
+                reset();
+            },
+            forceFormData: true 
+        });
+    };
+
+    // Calcular deuda total para el encabezado
+    const totalDebt = pendingPayments ? pendingPayments.reduce((sum, triage) => sum + parseFloat(triage.amount), 0) : 0;
 
     return (
         <ClientLayout user={auth.user} header={
-            <h2 className="font-semibold text-xl text-gray-800 leading-tight flex items-center">
-                <span className="mr-2">💳</span> Mis Pagos
-            </h2>
+            <div className="flex justify-between items-center">
+                <h2 className="font-semibold text-xl text-gray-800 leading-tight flex items-center">
+                    <span className="mr-2">💳</span> Mis Pagos
+                </h2>
+                {totalDebt > 0 && (
+                    <span className="bg-red-100 text-red-800 font-black px-4 py-1 rounded-full border border-red-200 shadow-sm animate-pulse">
+                        Deuda Total: S/ {totalDebt.toFixed(2)}
+                    </span>
+                )}
+            </div>
         }>
             <Head title="Mis Pagos" />
 
             <div className="py-8">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-8">
 
-                    {/* --- SECCIÓN 1: EN VALIDACIÓN --- */}
+                    {/* --- SECCIÓN 1: DEUDAS PENDIENTES (¡LO NUEVO!) --- */}
+                    {pendingPayments && pendingPayments.length > 0 && (
+                        <div className="px-4 sm:px-0">
+                            <h3 className="text-xl font-black text-red-600 mb-4 flex items-center">
+                                <span className="mr-2">🚨</span> Acción Requerida: Pagos Pendientes
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {pendingPayments.map(triage => (
+                                    <div key={triage.id} className="bg-white border-2 border-red-400 rounded-2xl shadow-lg overflow-hidden transform transition hover:-translate-y-1">
+                                        <div className="bg-red-500 text-white p-4 text-center">
+                                            <p className="text-sm font-bold uppercase tracking-widest opacity-80 mb-1">Emergencia Atendida</p>
+                                            <h4 className="text-3xl font-black">S/ {triage.amount}</h4>
+                                        </div>
+                                        <div className="p-5 bg-white">
+                                            <p className="text-gray-600 font-medium mb-1">
+                                                Paciente: <span className="font-bold text-gray-800">{triage.pet.name}</span>
+                                            </p>
+                                            <p className="text-sm text-gray-500 mb-4">
+                                                Fecha: {new Date(triage.created_at).toLocaleDateString('es-ES')}
+                                            </p>
+                                            <button 
+                                                onClick={() => openPaymentModal(triage.id)}
+                                                className="w-full bg-red-600 hover:bg-red-700 text-white font-black py-3 rounded-xl shadow-md transition-colors flex items-center justify-center"
+                                            >
+                                                <span className="mr-2">💸</span> REGULARIZAR PAGO
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* --- SECCIÓN 2: EN VALIDACIÓN --- */}
                     {inValidation && inValidation.length > 0 && (
                         <div className="px-4 sm:px-0">
                             <h3 className="text-lg font-black text-gray-700 mb-4 flex items-center">
@@ -42,7 +109,7 @@ export default function Payments({ auth, inValidation, paidHistory }) {
                         </div>
                     )}
 
-                    {/* --- SECCIÓN 2: HISTORIAL DE PAGOS APROBADOS --- */}
+                    {/* --- SECCIÓN 3: HISTORIAL DE PAGOS APROBADOS --- */}
                     <div className="px-4 sm:px-0">
                         <h3 className="text-lg font-black text-gray-700 mb-4 flex items-center">
                             <span className="mr-2 text-green-500">✅</span> Historial de Pagos
@@ -110,37 +177,48 @@ export default function Payments({ auth, inValidation, paidHistory }) {
                 </div>
             </div>
 
-            {/* --- MODAL PARA VER EL COMPROBANTE --- */}
+            {/* --- MODAL 1: VER COMPROBANTE --- */}
             <Modal show={selectedReceipt !== null} onClose={() => setSelectedReceipt(null)} maxWidth="md">
                 <div className="p-6 bg-white">
                     <div className="flex justify-between items-center mb-4 border-b pb-2">
                         <h3 className="text-xl font-black text-gray-800">Tu Comprobante</h3>
-                        <button onClick={() => setSelectedReceipt(null)} className="text-gray-400 hover:text-red-500 font-bold text-xl">
-                            &times;
-                        </button>
+                        <button onClick={() => setSelectedReceipt(null)} className="text-gray-400 hover:text-red-500 font-bold text-xl">&times;</button>
                     </div>
-                    
                     <div className="bg-gray-100 rounded-lg p-2 flex justify-center items-center min-h-[300px]">
                         {selectedReceipt ? (
-                            <img 
-                                src={selectedReceipt} 
-                                alt="Comprobante de Pago" 
-                                className="max-w-full h-auto rounded shadow-sm object-contain max-h-[60vh]"
-                            />
+                            <img src={selectedReceipt} alt="Comprobante" className="max-w-full h-auto rounded shadow-sm object-contain max-h-[60vh]" />
                         ) : (
                             <p className="text-gray-400">Imagen no disponible</p>
                         )}
                     </div>
-                    
                     <div className="mt-6 flex justify-end">
-                        <button 
-                            onClick={() => setSelectedReceipt(null)} 
-                            className="bg-gray-800 hover:bg-gray-900 text-white font-bold py-2 px-6 rounded-lg transition-colors"
-                        >
-                            Cerrar
-                        </button>
+                        <button onClick={() => setSelectedReceipt(null)} className="bg-gray-800 hover:bg-gray-900 text-white font-bold py-2 px-6 rounded-lg transition-colors">Cerrar</button>
                     </div>
                 </div>
+            </Modal>
+
+            {/* --- MODAL 2: PAGAR DEUDA --- */}
+            <Modal show={selectedDebt !== null} onClose={() => setSelectedDebt(null)} maxWidth="md">
+                <form onSubmit={submitPayment} className="p-6 bg-white">
+                    <h2 className="text-2xl font-black text-gray-800 mb-4 border-b pb-2">Subir Comprobante 💸</h2>
+                    <p className="text-gray-600 mb-6">Sube la captura de tu transferencia para regularizar tu pago y desbloquear la receta médica de tu mascota.</p>
+                    
+                    <input 
+                        type="file" 
+                        accept="image/*"
+                        onChange={e => setData('payment_proof', e.target.files[0])}
+                        className="w-full border border-gray-300 rounded p-2 mb-2 focus:ring-red-500 focus:border-red-500"
+                        required
+                    />
+                    {errors.payment_proof && <span className="text-red-500 text-sm block mb-4">{errors.payment_proof}</span>}
+
+                    <div className="mt-8 flex justify-end items-center">
+                        <button type="button" onClick={() => setSelectedDebt(null)} className="text-gray-500 font-bold mr-4 hover:text-gray-700">Cancelar</button>
+                        <button type="submit" disabled={processing} className="bg-red-600 hover:bg-red-700 text-white font-black px-6 py-3 rounded-lg shadow-lg disabled:opacity-50 transition-colors">
+                            {processing ? 'Subiendo...' : 'ENVIAR COMPROBANTE'}
+                        </button>
+                    </div>
+                </form>
             </Modal>
 
         </ClientLayout>

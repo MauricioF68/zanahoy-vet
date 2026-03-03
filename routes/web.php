@@ -137,6 +137,22 @@ Route::prefix('admin')->middleware(['auth'])->group(function () {
     Route::get('/finance', [\App\Http\Controllers\Admin\FinanceController::class, 'index'])->name('admin.finance.index');
     Route::post('/finance/{id}/approve', [\App\Http\Controllers\Admin\FinanceController::class, 'approvePayment'])->name('admin.finance.approve');
 
+    // MÓDULO DE REGLAS Y CONFIGURACIÓN (ERP)
+    Route::get('/configuracion', [App\Http\Controllers\Admin\SettingController::class, 'index'])->name('admin.settings.index');
+    Route::post('/configuracion/general', [App\Http\Controllers\Admin\SettingController::class, 'updateGeneral'])->name('admin.settings.update_general');
+
+    Route::post('/configuracion/cuentas', [App\Http\Controllers\Admin\SettingController::class, 'updateAccounts'])->name('admin.settings.update_accounts');
+    Route::post('/configuracion/metodos', [App\Http\Controllers\Admin\SettingController::class, 'storeMethod'])->name('admin.settings.store_method');
+    Route::post('/configuracion/bancos', [App\Http\Controllers\Admin\SettingController::class, 'storeBank'])->name('admin.settings.store_bank');
+
+    // Actualizar y Eliminar Métodos
+    Route::put('/configuracion/metodos/{paymentMethod}', [App\Http\Controllers\Admin\SettingController::class, 'updateMethod'])->name('admin.settings.update_method');
+    Route::delete('/configuracion/metodos/{paymentMethod}', [App\Http\Controllers\Admin\SettingController::class, 'destroyMethod'])->name('admin.settings.destroy_method');
+
+    // Actualizar y Eliminar Bancos
+    Route::put('/configuracion/bancos/{bank}', [App\Http\Controllers\Admin\SettingController::class, 'updateBank'])->name('admin.settings.update_bank');
+    Route::delete('/configuracion/bancos/{bank}', [App\Http\Controllers\Admin\SettingController::class, 'destroyBank'])->name('admin.settings.destroy_bank');
+
 });
 
 
