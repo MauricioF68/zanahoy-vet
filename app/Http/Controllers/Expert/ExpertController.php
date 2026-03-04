@@ -207,4 +207,37 @@ class ExpertController extends Controller
         
         return $pdf->download('Historial_Clinico_' . str_replace(' ', '_', $pet->name) . '.pdf');
     }
+
+    /**
+     * MIS HONORARIOS: Billetera virtual del Experto (V1 Informativa)
+     */
+    public function finances()
+    {
+        $expertId = Auth::id();
+
+        // 1. Obtenemos la regla de negocio (El honorario fijo)
+        // Usamos el namespace completo por si no importaste el modelo arriba
+        $expertFee = \App\Models\Setting::where('key', 'honorario_experto')->value('value');
+        
+        // Si por alguna razón el admin olvidó configurarlo, le ponemos 0 por defecto
+        $expertFee = $expertFee ? (float) $expertFee : 0.00; 
+
+        // 2. Traemos todas las atenciones válidas para ser cobradas
+        $triages = Triage::with('pet')
+            ->where('expert_id', $expertId)
+            ->where('is_attended', true)
+            ->where('payment_status', 'paid') // Solo atenciones que la clínica ya validó
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($triage) use ($expertFee) {
+                // Le inyectamos la ganancia exacta a cada fila para que React no tenga que adivinar
+                $triage->expert_earning = $expertFee;
+                return $triage;
+            });
+
+        return Inertia::render('Expert/Finances/Index', [
+            'triages' => $triages,
+            'expertFee' => $expertFee
+        ]);
+    }
 }

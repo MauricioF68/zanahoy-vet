@@ -180,6 +180,9 @@ Route::middleware(['auth', 'verified'])->prefix('expert')->name('expert.')->grou
     Route::get('/patients/{pet}', [\App\Http\Controllers\Expert\ExpertController::class, 'showPatient'])->name('patients.show');
     Route::get('/patients/{pet}/pdf', [\App\Http\Controllers\Expert\ExpertController::class, 'downloadPatientPdf'])->name('patients.pdf');
 
+    // --- MÓDULO: MIS HONORARIOS (BILLETERA DEL EXPERTO) ---
+    Route::get('/finances', [\App\Http\Controllers\Expert\ExpertController::class, 'finances'])->name('finances.index');
+
     
 });
 

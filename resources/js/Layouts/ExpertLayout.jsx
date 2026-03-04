@@ -10,7 +10,7 @@ export default function ExpertLayout({ user, header, children }) {
     const navLinks = [
         { name: 'Radar de Emergencias', route: 'expert.dashboard', icon: '🚨', active: url.startsWith('/expert/dashboard') },
         { name: 'Mis Pacientes', route: 'expert.patients.index', icon: '🐾', active: url.startsWith('/expert/patients') }, // Ruta placeholder
-        { name: 'Mis Honorarios', route: 'expert.dashboard', icon: '💰', active: url.startsWith('/expert/finances') }, // Ruta placeholder
+        { name: 'Mis Honorarios', route: 'expert.finances.index', icon: '💰', active: url.startsWith('/expert/finances') }, // Ruta placeholder
     ];
 
     return (
