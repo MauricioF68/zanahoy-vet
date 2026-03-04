@@ -10,7 +10,7 @@ use App\Http\Controllers\Auth\FinishRegistrationController;
 use App\Http\Controllers\Admin\RequestController;
 use App\Http\Controllers\Client\DashboardController; // Importación unificada
 use App\Http\Controllers\Admin\SpeciesController;
-use App\Http\Controllers\Expert\FinanceController;
+use App\Http\Controllers\Expert\ExpertProfileController;
 use Inertia\Inertia;
 
 /*
@@ -183,6 +183,10 @@ Route::middleware(['auth', 'verified'])->prefix('expert')->name('expert.')->grou
 
     // --- MÓDULO: MIS HONORARIOS (BILLETERA DEL EXPERTO) ---
     Route::get('/finances', [\App\Http\Controllers\Expert\ExpertController::class, 'finances'])->name('finances.index');
+
+    // Perfil del Experto
+    Route::get('/profile', [\App\Http\Controllers\Expert\ExpertProfileController::class, 'edit'])->name('profile.edit');
+    Route::post('/profile', [\App\Http\Controllers\Expert\ExpertProfileController::class, 'update'])->name('profile.update');
 
     
 });

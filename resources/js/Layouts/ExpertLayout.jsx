@@ -11,6 +11,7 @@ export default function ExpertLayout({ user, header, children }) {
         { name: 'Radar de Emergencias', route: 'expert.dashboard', icon: '🚨', active: url.startsWith('/expert/dashboard') },
         { name: 'Mis Pacientes', route: 'expert.patients.index', icon: '🐾', active: url.startsWith('/expert/patients') }, // Ruta placeholder
         { name: 'Mis Honorarios', route: 'expert.finances.index', icon: '💰', active: url.startsWith('/expert/finances') }, // Ruta placeholder
+        { name: 'Mi Perfil', route: 'expert.profile.edit', icon: '⚙️', active: url.startsWith('/expert/profile') },
     ];
 
     return (
