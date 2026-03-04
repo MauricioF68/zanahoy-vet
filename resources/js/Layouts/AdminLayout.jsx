@@ -12,10 +12,11 @@ export default function AdminLayout({ user, header, children }) {
         { name: 'Dashboard', route: 'admin.dashboard', icon: '📊' },
         { name: 'Especies', route: 'admin.species.index', icon: '🐾' },        
         { name: 'Categorías', route: 'admin.categories.index', icon: '🗂️' },
-         { name: 'Síntomas', route: 'admin.symptoms.index', icon: '🩺' },
-         { name: 'Combos Médicos', route: 'admin.symptom-combos.index', icon: '🧩' },
-         { name: 'Torre de Control', route: 'admin.triages.index', icon: '📡' },
-         { name: 'Finanzas y Pagos', route: 'admin.finance.index', icon: '💰' },
+        { name: 'Síntomas', route: 'admin.symptoms.index', icon: '🩺' },
+        { name: 'Combos Médicos', route: 'admin.symptom-combos.index', icon: '🧩' },
+        { name: 'Reglas y Ajustes', route: 'admin.settings.index', icon: '⚙️' },
+        { name: 'Torre de Control', route: 'admin.triages.index', icon: '📡' },
+        { name: 'Finanzas y Pagos', route: 'admin.finance.index', icon: '💰' },
     ];
 
     return (

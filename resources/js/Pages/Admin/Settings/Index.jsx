@@ -12,8 +12,10 @@ export default function Index({ auth, settings, paymentMethods, banks }) {
     const [editingMethodId, setEditingMethodId] = useState(null);
     const [editingBankId, setEditingBankId] = useState(null);
 
+    // 💰 AQUÍ AGREGAMOS honorario_experto
     const formGeneral = useForm({
         consulta_precio: settings.consulta_precio || '',
+        honorario_experto: settings.honorario_experto || '',
         pin_auditoria: settings.pin_auditoria || '',
     });
 
@@ -93,15 +95,33 @@ export default function Index({ auth, settings, paymentMethods, banks }) {
                             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
                                 <h3 className="text-xl font-black text-gray-800 mb-6 border-b pb-4">Ajustes Generales</h3>
                                 <form onSubmit={submitGeneral} className="space-y-6 max-w-lg">
+                                    
+                                    {/* PRECIO DE CONSULTA */}
                                     <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                                        <InputLabel value="Precio de la Consulta (S/)" className="font-bold text-lg" />
+                                        <InputLabel value="Precio cobrado al Cliente (S/)" className="font-bold text-lg text-gray-800" />
                                         <TextInput type="number" step="0.01" className="w-full font-black text-xl text-indigo-700 mt-2" value={formGeneral.data.consulta_precio} onChange={e => formGeneral.setData('consulta_precio', e.target.value)} required />
                                     </div>
+
+                                    {/* 💰 HONORARIO DEL DOCTOR */}
+                                    <div className="bg-green-50 p-4 rounded-xl border border-green-200">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <InputLabel value="Honorario Fijo del Doctor (S/)" className="font-bold text-lg text-green-800" />
+                                            <span className="text-2xl">👨‍⚕️</span>
+                                        </div>
+                                        <p className="text-xs text-green-600 mb-2">Este monto se asignará a la billetera del experto tras cada atención exitosa.</p>
+                                        <TextInput type="number" step="0.01" className="w-full font-black text-xl text-green-700 mt-1 border-green-300 focus:border-green-500 focus:ring-green-500" value={formGeneral.data.honorario_experto} onChange={e => formGeneral.setData('honorario_experto', e.target.value)} required />
+                                        {formGeneral.errors.honorario_experto && <span className="text-red-500 text-xs mt-2 block font-bold">{formGeneral.errors.honorario_experto}</span>}
+                                    </div>
+
+                                    {/* PIN DE AUDITORÍA */}
                                     <div className="bg-red-50 p-4 rounded-xl border border-red-200">
                                         <InputLabel value="PIN de Auditoría Financiera 🔒" className="text-red-700 font-bold text-lg" />
                                         <TextInput type="password" maxLength="6" className="w-full font-black text-xl tracking-widest text-red-700 mt-2" value={formGeneral.data.pin_auditoria} onChange={e => formGeneral.setData('pin_auditoria', e.target.value)} required />
                                     </div>
-                                    <button type="submit" disabled={formGeneral.processing} className="bg-gray-800 text-white font-bold py-3 px-8 rounded-xl shadow-lg disabled:opacity-50">💾 GUARDAR</button>
+
+                                    <button type="submit" disabled={formGeneral.processing} className="bg-gray-800 text-white font-bold py-3 px-8 rounded-xl shadow-lg disabled:opacity-50 w-full text-center">
+                                        💾 GUARDAR TARIFAS Y REGLAS
+                                    </button>
                                 </form>
                             </div>
                         )}

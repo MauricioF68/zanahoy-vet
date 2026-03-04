@@ -25,6 +25,15 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
+        // 🛑 EL GUARDIÁN DE ROLES 🛑
+        // Si un experto o admin intenta entrar a la ruta /dashboard por error, lo mandamos a su casa.
+        if ($user->role === 'expert') {
+            return redirect()->route('expert.dashboard');
+        }
+        if ($user->role === 'admin') {
+            return redirect()->route('admin.dashboard');
+        }
+
         // 1. Mascotas del usuario (¡AHORA CARGANDO SU HISTORIAL MÉDICO!)
         $pets = Pet::with(['triages' => function($query) {
             $query->orderBy('created_at', 'desc'); // Traemos las consultas más recientes primero
@@ -265,6 +274,9 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
+        if ($user->role === 'expert') return redirect()->route('expert.dashboard');
+        if ($user->role === 'admin') return redirect()->route('admin.dashboard');
+
         // Traemos todas las mascotas del usuario con sus historiales médicos cerrados
         $pets = Pet::with(['triages' => function($query) {
             $query->where('is_attended', true)
@@ -285,6 +297,9 @@ class DashboardController extends Controller
     public function myPayments()
     {
         $user = Auth::user();
+
+        if ($user->role === 'expert') return redirect()->route('expert.dashboard');
+        if ($user->role === 'admin') return redirect()->route('admin.dashboard');
 
         // Traemos todos los triajes del cliente (que generaron cobro)
         $allTriages = Triage::with('pet')

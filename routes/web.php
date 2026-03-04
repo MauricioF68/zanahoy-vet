@@ -175,6 +175,11 @@ Route::middleware(['auth', 'verified'])->prefix('expert')->name('expert.')->grou
     // NUEVO: Cerrar caso y guardar historial
     Route::post('/cases/{id}/close', [\App\Http\Controllers\Expert\ExpertController::class, 'closeCase'])->name('case.close');
 
+    // --- MÓDULO: MIS PACIENTES (CRM MÉDICO) ---
+    Route::get('/patients', [\App\Http\Controllers\Expert\ExpertController::class, 'patients'])->name('patients.index');
+    Route::get('/patients/{pet}', [\App\Http\Controllers\Expert\ExpertController::class, 'showPatient'])->name('patients.show');
+    Route::get('/patients/{pet}/pdf', [\App\Http\Controllers\Expert\ExpertController::class, 'downloadPatientPdf'])->name('patients.pdf');
+
     
 });
 

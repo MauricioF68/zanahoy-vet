@@ -28,12 +28,19 @@ class SettingController extends Controller
     }
 
     // Aquí guardaremos los ajustes generales (Precio y PIN)
+    // Aquí guardaremos los ajustes generales (Precio, Honorarios y PIN)
     public function updateGeneral(Request $request)
     {
         $data = $request->validate([
             'consulta_precio' => 'required|numeric|min:0',
+            'honorario_experto' => 'required|numeric|min:0', // 💰 NUEVO: Pago del doctor
             'pin_auditoria' => 'required|string|min:4',
         ]);
+
+        // Asegurarnos de que no le paguemos al doctor más de lo que cobramos
+        if ($data['honorario_experto'] > $data['consulta_precio']) {
+            return back()->withErrors(['honorario_experto' => 'El honorario del doctor no puede ser mayor al precio de la consulta.']);
+        }
 
         foreach ($data as $key => $value) {
             Setting::updateOrCreate(
@@ -42,7 +49,7 @@ class SettingController extends Controller
             );
         }
 
-        return back()->with('message', 'Ajustes guardados correctamente.');
+        return back()->with('message', 'Ajustes de tarifas guardados correctamente.');
     }
 
     // Guardar Cuentas y Fotos de QR

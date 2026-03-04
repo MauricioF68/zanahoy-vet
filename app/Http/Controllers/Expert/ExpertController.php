@@ -141,4 +141,70 @@ class ExpertController extends Controller
 
         return redirect()->route('expert.dashboard')->with('message', '¡Caso finalizado! El historial clínico ha sido guardado con éxito.');
     }
+
+    /**
+     * MIS PACIENTES: Lista de mascotas que el experto ha atendido
+     */
+    public function patients()
+    {
+        $expertId = Auth::id();
+
+        // Buscamos a las mascotas que tengan al menos 1 triaje con este experto
+        $pets = \App\Models\Pet::whereHas('triages', function($query) use ($expertId) {
+            $query->where('expert_id', $expertId);
+        })
+        ->with('user') // Traemos los datos del dueño
+        ->get();
+
+        return Inertia::render('Expert/Patients/Index', [
+            'pets' => $pets
+        ]);
+    }
+
+    /**
+     * EXPEDIENTE MÉDICO: Detalle del paciente (Historial Colaborativo)
+     */
+    public function showPatient($id)
+    {
+        $expertId = Auth::id();
+
+        // 1. REGLA DE SEGURIDAD: ¿Este experto ha atendido a esta mascota alguna vez?
+        $hasTreated = Triage::where('pet_id', $id)->where('expert_id', $expertId)->exists();
+        
+        if (!$hasTreated) {
+            abort(403, 'No tienes permisos para ver el historial de un paciente que no has atendido.');
+        }
+
+        // 2. Traemos a la mascota con TODO su historial cerrado (incluso de otros doctores)
+        $pet = \App\Models\Pet::with(['user', 'triages' => function($query) {
+            $query->where('is_attended', true)
+                  ->orderBy('created_at', 'desc')
+                  ->with('expert'); // Traemos al doctor que lo atendió en esa cita
+        }])->findOrFail($id);
+
+        return Inertia::render('Expert/Patients/Show', [
+            'pet' => $pet
+        ]);
+    }
+
+    /**
+     * DESCARGAR PDF: Exporta el historial médico completo
+     */
+    public function downloadPatientPdf($id)
+    {
+        $expertId = Auth::id();
+
+        // Verificamos seguridad nuevamente
+        $hasTreated = Triage::where('pet_id', $id)->where('expert_id', $expertId)->exists();
+        if (!$hasTreated) abort(403);
+
+        $pet = \App\Models\Pet::with(['user', 'triages' => function($query) {
+            $query->where('is_attended', true)->orderBy('created_at', 'desc')->with('expert');
+        }])->findOrFail($id);
+
+        // Generamos el PDF usando una vista Blade (que crearemos luego)
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('pdf.patient_history', compact('pet'));
+        
+        return $pdf->download('Historial_Clinico_' . str_replace(' ', '_', $pet->name) . '.pdf');
+    }
 }
