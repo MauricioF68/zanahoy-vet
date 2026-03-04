@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: zanahoy-vet-app
+    env: php
+    plan: free
+    buildCommand: |
+      composer install --no-dev --optimize-autoloader
+      npm install && npm run build
+    startCommand: |
+      php artisan migrate --force
+      apache2-foreground
+    envVars:
+      - key: APP_KEY
+        generateValue: true
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
