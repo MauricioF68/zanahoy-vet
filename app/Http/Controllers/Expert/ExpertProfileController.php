@@ -40,6 +40,8 @@ class ExpertProfileController extends Controller
         $validated = $request->validate([
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:255',
+            'latitude' => 'nullable|numeric',  
+            'longitude' => 'nullable|numeric',
             'academic_level' => 'required|in:estudiante,bachiller,titulado',
             'university' => 'required|string|max:255',
             'current_cycle' => 'required_if:academic_level,estudiante|nullable|integer|between:1,12',
@@ -59,6 +61,8 @@ class ExpertProfileController extends Controller
             // Actualizamos los datos médicos en expert_profiles
             $user->expertProfile()->update([
                 'address' => $validated['address'],
+                'latitude' => $validated['latitude'],   
+                'longitude' => $validated['longitude'],
                 'academic_level' => $validated['academic_level'],
                 'university' => $validated['university'],
                 'current_cycle' => $validated['academic_level'] === 'estudiante' ? $validated['current_cycle'] : null,

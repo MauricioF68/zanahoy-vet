@@ -1,15 +1,18 @@
 import React from 'react';
 import { Head, useForm, usePage } from '@inertiajs/react';
 import ExpertLayout from '@/Layouts/ExpertLayout';
+import LocationPicker from '@/Components/LocationPicker';
 
 export default function Edit({ auth, user, allSpecialties, currentSpecialtyIds }) {
-    // Leemos el perfil cargado desde el backend
     const expert = user.expert_profile || {};
-    const { flash = {} } = usePage().props;
+    
+    // Ya no necesitamos extraer 'flash' aquí porque GlobalToast lo maneja desde el Layout
 
     const { data, setData, post, processing, errors } = useForm({
         phone: user.phone || '',
         address: expert.address || '',
+        latitude: expert.latitude || '',
+        longitude: expert.longitude || '',
         academic_level: expert.academic_level || '',
         university: expert.university || '',
         current_cycle: expert.current_cycle || '',
@@ -18,9 +21,18 @@ export default function Edit({ auth, user, allSpecialties, currentSpecialtyIds }
         selected_specialties: currentSpecialtyIds || []
     });
 
+    // Función que recibe los datos desde nuestro nuevo componente de mapa
+    const handleLocationUpdate = (locationData) => {
+        setData(currentData => ({
+            ...currentData,
+            address: locationData.address,
+            latitude: locationData.lat,
+            longitude: locationData.lng
+        }));
+    };
+
     const submit = (e) => {
         e.preventDefault();
-        // Usamos post porque así lo definimos en la ruta web.php
         post(route('expert.profile.update'), { preserveScroll: true });
     };
 
@@ -29,43 +41,49 @@ export default function Edit({ auth, user, allSpecialties, currentSpecialtyIds }
             <Head title="Mi Perfil Profesional" />
 
             <div className="max-w-4xl mx-auto py-6">
-                
-                {flash?.message && (
-                    <div className="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl font-bold flex items-center shadow-sm">
-                        <span className="mr-2 text-xl">✅</span> {flash.message}
-                    </div>
-                )}
-
                 <form onSubmit={submit} className="space-y-6">
                     
-                    {/* TARJETA 1: DATOS BÁSICOS (Solo lectura) Y CONTACTO */}
+                    {/* TARJETA 1: DATOS BÁSICOS Y UBICACIÓN */}
                     <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
                         <h2 className="text-xl font-black text-slate-800 mb-6 flex items-center border-b pb-3">
-                            <span className="mr-2">👤</span> Datos Personales y Contacto
+                            <span className="mr-2">👤</span> Datos Personales y Ubicación
                         </h2>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Nombre Completo (Solo lectura)</label>
-                                <input type="text" value={user.name} disabled className="w-full bg-slate-100 border-slate-200 rounded-xl text-slate-500 font-bold cursor-not-allowed" />
+                                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Nombre Completo 🔒</label>
+                                <input type="text" value={user.name} disabled className="w-full bg-slate-100 border-slate-200 rounded-xl text-slate-500 font-bold cursor-not-allowed opacity-70" />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Documento (Solo lectura)</label>
-                                <input type="text" value={expert.dni || 'No registrado'} disabled className="w-full bg-slate-100 border-slate-200 rounded-xl text-slate-500 font-bold cursor-not-allowed" />
+                                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Correo Electrónico 🔒</label>
+                                <input type="email" value={user.email} disabled className="w-full bg-slate-100 border-slate-200 rounded-xl text-slate-500 font-bold cursor-not-allowed opacity-70" />
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Teléfono / WhatsApp</label>
-                                <input type="text" value={data.phone} onChange={e => setData('phone', e.target.value)} className="w-full border-slate-200 rounded-xl focus:ring-indigo-500 focus:border-indigo-500" />
+                                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">DNI / Documento 🔒</label>
+                                <input type="text" value={expert.dni || 'No registrado'} disabled className="w-full bg-slate-100 border-slate-200 rounded-xl text-slate-500 font-bold cursor-not-allowed opacity-70" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Teléfono / WhatsApp ✏️</label>
+                                <input type="text" value={data.phone} onChange={e => setData('phone', e.target.value)} className="w-full border-slate-200 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 font-bold text-slate-800 shadow-sm" />
                                 {errors.phone && <span className="text-red-500 text-xs font-bold mt-1">{errors.phone}</span>}
                             </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Dirección / Consultorio</label>
-                                <input type="text" value={data.address} onChange={e => setData('address', e.target.value)} placeholder="Ej: Av. Las Palmeras 123" className="w-full border-slate-200 rounded-xl focus:ring-indigo-500 focus:border-indigo-500" />
-                                {errors.address && <span className="text-red-500 text-xs font-bold mt-1">{errors.address}</span>}
-                            </div>
+                        </div>
+
+                        {/* AQUÍ INYECTAMOS NUESTRO MAPA INTELIGENTE */}
+                        <div className="mt-6 border-t pt-6">
+                            <label className="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">Dirección de Consultorio o Residencia</label>
+                            
+                            <LocationPicker 
+                                defaultLat={data.latitude}
+                                defaultLng={data.longitude}
+                                defaultAddress={data.address}
+                                onLocationChange={handleLocationUpdate}
+                            />
+                            
+                            {errors.address && <span className="text-red-500 text-xs font-bold mt-1 block">{errors.address}</span>}
                         </div>
                     </div>
 
@@ -79,7 +97,6 @@ export default function Edit({ auth, user, allSpecialties, currentSpecialtyIds }
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Universidad</label>
                                 <input type="text" value={data.university} onChange={e => setData('university', e.target.value)} required className="w-full border-slate-200 rounded-xl focus:ring-indigo-500 focus:border-indigo-500" />
-                                {errors.university && <span className="text-red-500 text-xs font-bold mt-1">{errors.university}</span>}
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Nivel Académico</label>
@@ -88,31 +105,26 @@ export default function Edit({ auth, user, allSpecialties, currentSpecialtyIds }
                                     <option value="bachiller">Bachiller</option>
                                     <option value="titulado">Titulado</option>
                                 </select>
-                                {errors.academic_level && <span className="text-red-500 text-xs font-bold mt-1">{errors.academic_level}</span>}
                             </div>
                         </div>
 
                         {data.academic_level === 'estudiante' && (
-                            <div className="mb-6 animate-in fade-in slide-in-from-top-2">
+                            <div className="mb-6">
                                 <label className="block text-xs font-bold text-orange-500 mb-1 uppercase tracking-wider">Ciclo Actual</label>
                                 <input type="number" min="1" max="12" value={data.current_cycle} onChange={e => setData('current_cycle', e.target.value)} className="w-full border-orange-200 rounded-xl focus:ring-orange-500 focus:border-orange-500 bg-orange-50" />
-                                {errors.current_cycle && <span className="text-red-500 text-xs font-bold mt-1">{errors.current_cycle}</span>}
                             </div>
                         )}
 
                         {data.academic_level === 'titulado' && (
-                            <div className="mb-6 animate-in fade-in slide-in-from-top-2">
+                            <div className="mb-6">
                                 <label className="block text-xs font-bold text-emerald-600 mb-1 uppercase tracking-wider">N° de Colegiatura (CQVP)</label>
                                 <input type="text" value={data.license_number} onChange={e => setData('license_number', e.target.value)} className="w-full border-emerald-200 rounded-xl focus:ring-emerald-500 focus:border-emerald-500 bg-emerald-50" />
-                                {errors.license_number && <span className="text-red-500 text-xs font-bold mt-1">{errors.license_number}</span>}
                             </div>
                         )}
 
-                        {/* BIO */}
                         <div>
                             <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Sobre mí (Biografía)</label>
-                            <textarea value={data.bio} onChange={e => setData('bio', e.target.value)} rows="3" placeholder="Cuéntale a tus pacientes un poco sobre tu experiencia..." className="w-full border-slate-200 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 resize-none"></textarea>
-                            {errors.bio && <span className="text-red-500 text-xs font-bold mt-1">{errors.bio}</span>}
+                            <textarea value={data.bio} onChange={e => setData('bio', e.target.value)} rows="3" placeholder="Cuéntale a tus pacientes sobre tu experiencia..." className="w-full border-slate-200 rounded-xl focus:ring-indigo-500 focus:border-indigo-500 resize-none"></textarea>
                         </div>
                     </div>
 
@@ -121,7 +133,6 @@ export default function Edit({ auth, user, allSpecialties, currentSpecialtyIds }
                         <h2 className="text-xl font-black text-slate-800 mb-6 flex items-center border-b pb-3">
                             <span className="mr-2">🩺</span> Mis Especialidades
                         </h2>
-                        <p className="text-sm text-slate-500 mb-4">Selecciona las áreas en las que puedes brindar atención médica.</p>
                         
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                             {allSpecialties.map(spec => (
@@ -144,7 +155,6 @@ export default function Edit({ auth, user, allSpecialties, currentSpecialtyIds }
                                 </label>
                             ))}
                         </div>
-                        {errors.selected_specialties && <span className="text-red-500 text-xs font-bold mt-2 block">{errors.selected_specialties}</span>}
                     </div>
 
                     {/* BOTÓN GUARDAR */}
