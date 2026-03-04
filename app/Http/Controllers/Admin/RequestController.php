@@ -16,7 +16,7 @@ class RequestController extends Controller
         // Obtenemos expertos y clínicas que están pendientes
         $requests = User::where('status', 'pending')
             ->whereIn('role', ['expert', 'clinic'])
-            ->with(['expertProfile', 'clinicProfile']) // Cargamos sus perfiles
+            ->with(['expertProfile.specialties', 'clinicProfile']) // Cargamos sus perfiles
             ->latest()
             ->get();
 

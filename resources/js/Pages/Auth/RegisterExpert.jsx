@@ -2,8 +2,9 @@ import React from 'react';
 import { Head, useForm } from '@inertiajs/react';
 
 export default function RegisterExpert({ specialties }) {
+    // 👇 Agregamos 'dni' al estado inicial
     const { data, setData, post, processing, errors } = useForm({
-        name: '', email: '', password: '', phone: '',
+        name: '', dni: '', email: '', password: '', phone: '',
         address: '', academic_level: '', university: '',
         current_cycle: '', license_number: '', bio: '',
         selected_specialties: []
@@ -21,31 +22,43 @@ export default function RegisterExpert({ specialties }) {
                 <h2 className="text-3xl font-bold text-orange-600 mb-6">Registro de Experto</h2>
                 
                 <form onSubmit={submit} className="space-y-4">
-                    {/* Datos Básicos */}
-                    <div>
-                        <label className="block font-medium text-gray-700">Nombre Completo</label>
-                        <input type="text" className="w-full border-gray-300 rounded-md shadow-sm" 
-                            value={data.name} onChange={e => setData('name', e.target.value)} required />
-                        {/* 👇 AQUÍ MOSTRAMOS EL ERROR 👇 */}
-                        {errors.name && <span className="text-red-500 text-xs font-bold mt-1">{errors.name}</span>}
+                    
+                    {/* 👇 Modificamos aquí: Nombre y DNI en la misma fila 👇 */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block font-medium text-gray-700">Nombre Completo</label>
+                            <input type="text" className="w-full border-gray-300 rounded-md shadow-sm" 
+                                value={data.name} onChange={e => setData('name', e.target.value)} required
+                                placeholder="juan doctor experto veterinario" />
+                            {errors.name && <span className="text-red-500 text-xs font-bold mt-1">{errors.name}</span>}
+                        </div>
+                        <div>
+                            <label className="block font-medium text-gray-700">DNI</label>
+                            <input type="text" maxLength="8" className="w-full border-gray-300 rounded-md shadow-sm" 
+                                value={data.dni} onChange={e => setData('dni', e.target.value)} required 
+                                placeholder="8 dígitos" />
+                            {errors.dni && <span className="text-red-500 text-xs font-bold mt-1">{errors.dni}</span>}
+                        </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="block font-medium text-gray-700">Email</label>
-                            <input type="email" className="w-full border-gray-300 rounded-md shadow-sm" 
-                                value={data.email} onChange={e => setData('email', e.target.value)} required />
+                            <input type="email"  className="w-full border-gray-300 rounded-md shadow-sm" 
+                                value={data.email} onChange={e => setData('email', e.target.value)} required
+                                placeholder="juanexperto@zanahoy.com" />
                             {errors.email && <span className="text-red-500 text-xs font-bold mt-1">{errors.email}</span>}
                         </div>
                         <div>
                             <label className="block font-medium text-gray-700">Teléfono</label>
-                            <input type="text" className="w-full border-gray-300 rounded-md shadow-sm" 
-                                value={data.phone} onChange={e => setData('phone', e.target.value)} />
+                            <input type="text" maxLength="9" className="w-full border-gray-300 rounded-md shadow-sm" 
+                                value={data.phone} onChange={e => setData('phone', e.target.value)}
+                                placeholder="Ej: 987654321" />
                             {errors.phone && <span className="text-red-500 text-xs font-bold mt-1">{errors.phone}</span>}
                         </div>
                     </div>
 
-                    {/* Nivel Académico - Lógica Dinámica */}
+                    {/* Nivel Académico */}
                     <div>
                         <label className="block font-medium text-gray-700">Nivel Académico</label>
                         <select className="w-full border-gray-300 rounded-md shadow-sm"

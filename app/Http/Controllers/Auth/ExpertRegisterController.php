@@ -16,6 +16,7 @@ class ExpertRegisterController extends Controller
         // 1. Validación de los datos que vienen del formulario React
         $request->validate([
             'name' => 'required|string|max:255',
+            'dni' => 'required|string|size:8',
             'email' => 'required|string|email|max:255|unique:users',
             'phone' => 'nullable|string|max:20',
             'academic_level' => 'required|in:estudiante,bachiller,titulado',
@@ -41,6 +42,7 @@ class ExpertRegisterController extends Controller
             // Creamos el perfil vinculado a ese usuario
             $profile = ExpertProfile::create([
                 'user_id' => $user->id,
+                'dni' => $request->dni,
                 'address' => 'Dirección por definir en mapa', 
                 'academic_level' => $request->academic_level,
                 'university' => $request->university,
