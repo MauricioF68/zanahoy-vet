@@ -14,6 +14,7 @@ export default function AdminLayout({ user, header, children }) {
         { name: 'Categorías', route: 'admin.categories.index', icon: '🗂️' },
         { name: 'Síntomas', route: 'admin.symptoms.index', icon: '🩺' },
         { name: 'Combos Médicos', route: 'admin.symptom-combos.index', icon: '🧩' },
+        { name: 'Gestion de Expertos', route: 'admin.requests.index', icon: '📬' },
         { name: 'Reglas y Ajustes', route: 'admin.settings.index', icon: '⚙️' },
         { name: 'Torre de Control', route: 'admin.triages.index', icon: '📡' },
         { name: 'Finanzas y Pagos', route: 'admin.finance.index', icon: '💰' },

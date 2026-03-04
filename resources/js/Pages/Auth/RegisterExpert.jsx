@@ -26,6 +26,8 @@ export default function RegisterExpert({ specialties }) {
                         <label className="block font-medium text-gray-700">Nombre Completo</label>
                         <input type="text" className="w-full border-gray-300 rounded-md shadow-sm" 
                             value={data.name} onChange={e => setData('name', e.target.value)} required />
+                        {/* 👇 AQUÍ MOSTRAMOS EL ERROR 👇 */}
+                        {errors.name && <span className="text-red-500 text-xs font-bold mt-1">{errors.name}</span>}
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
@@ -33,11 +35,13 @@ export default function RegisterExpert({ specialties }) {
                             <label className="block font-medium text-gray-700">Email</label>
                             <input type="email" className="w-full border-gray-300 rounded-md shadow-sm" 
                                 value={data.email} onChange={e => setData('email', e.target.value)} required />
+                            {errors.email && <span className="text-red-500 text-xs font-bold mt-1">{errors.email}</span>}
                         </div>
                         <div>
                             <label className="block font-medium text-gray-700">Teléfono</label>
                             <input type="text" className="w-full border-gray-300 rounded-md shadow-sm" 
                                 value={data.phone} onChange={e => setData('phone', e.target.value)} />
+                            {errors.phone && <span className="text-red-500 text-xs font-bold mt-1">{errors.phone}</span>}
                         </div>
                     </div>
 
@@ -51,13 +55,15 @@ export default function RegisterExpert({ specialties }) {
                             <option value="bachiller">Bachiller</option>
                             <option value="titulado">Titulado</option>
                         </select>
+                        {errors.academic_level && <span className="text-red-500 text-xs font-bold mt-1">{errors.academic_level}</span>}
                     </div>
 
                     {data.academic_level === 'estudiante' && (
                         <div>
                             <label className="block font-medium text-gray-700">Ciclo Actual</label>
-                            <input type="number" min="1" max="10" className="w-full border-gray-300 rounded-md shadow-sm" 
+                            <input type="number" min="1" max="12" className="w-full border-gray-300 rounded-md shadow-sm" 
                                 value={data.current_cycle} onChange={e => setData('current_cycle', e.target.value)} />
+                            {errors.current_cycle && <span className="text-red-500 text-xs font-bold mt-1">{errors.current_cycle}</span>}
                         </div>
                     )}
 
@@ -66,6 +72,7 @@ export default function RegisterExpert({ specialties }) {
                             <label className="block font-medium text-gray-700">N° de Colegiatura</label>
                             <input type="text" className="w-full border-gray-300 rounded-md shadow-sm" 
                                 value={data.license_number} onChange={e => setData('license_number', e.target.value)} />
+                            {errors.license_number && <span className="text-red-500 text-xs font-bold mt-1">{errors.license_number}</span>}
                         </div>
                     )}
 
@@ -73,6 +80,7 @@ export default function RegisterExpert({ specialties }) {
                         <label className="block font-medium text-gray-700">Universidad</label>
                         <input type="text" className="w-full border-gray-300 rounded-md shadow-sm" 
                             value={data.university} onChange={e => setData('university', e.target.value)} />
+                        {errors.university && <span className="text-red-500 text-xs font-bold mt-1">{errors.university}</span>}
                     </div>
 
                     {/* Especialidades */}
@@ -93,11 +101,12 @@ export default function RegisterExpert({ specialties }) {
                                 </label>
                             ))}
                         </div>
+                        {errors.selected_specialties && <span className="text-red-500 text-xs font-bold mt-1 block">{errors.selected_specialties}</span>}
                     </div>
 
                     <button type="submit" disabled={processing}
-                        className="w-full bg-orange-500 text-white py-3 rounded-lg font-bold hover:bg-orange-600 transition">
-                        Enviar Solicitud de Registro
+                        className="w-full bg-orange-500 text-white py-3 rounded-lg font-bold hover:bg-orange-600 transition disabled:opacity-50 flex justify-center">
+                        {processing ? 'Enviando...' : 'Enviar Solicitud de Registro'}
                     </button>
                 </form>
             </div>

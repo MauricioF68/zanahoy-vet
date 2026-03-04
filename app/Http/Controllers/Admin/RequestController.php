@@ -37,4 +37,14 @@ class RequestController extends Controller
 
         return back()->with('message', '¡Solicitud aprobada y correo enviado con éxito!');
     }
+
+    public function reject($id)
+    {
+        $user = User::findOrFail($id);
+        
+        // Lo pasamos a estado rechazado (o podrías eliminarlo con $user->delete())
+        $user->update(['status' => 'rejected']);
+
+        return back()->with('message', 'La solicitud ha sido rechazada.');
+    }
 }

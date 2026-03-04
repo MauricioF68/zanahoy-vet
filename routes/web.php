@@ -109,6 +109,7 @@ Route::prefix('admin')->middleware(['auth'])->group(function () {
     // 3. Solicitudes
     Route::get('/requests', [RequestController::class, 'index'])->name('admin.requests.index');
     Route::post('/requests/{id}/approve', [RequestController::class, 'approve'])->name('admin.requests.approve');
+    Route::post('/requests/{id}/reject', [RequestController::class, 'reject'])->name('admin.requests.reject');
 
     // 4. Gestión de Categorías
     Route::get('/categories', [\App\Http\Controllers\Admin\CategoryController::class, 'index'])->name('admin.categories.index');
