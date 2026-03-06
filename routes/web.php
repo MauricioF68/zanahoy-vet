@@ -71,6 +71,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Guardar decisión crítica (Ir a clínica vs Acompañamiento)
     Route::post('/triage/decision', [DashboardController::class, 'saveDecision'])->name('triage.decision');
 
+    Route::post('/triage/{id}/cancel', [DashboardController::class, 'cancelTriage'])->name('triage.cancel');
+
     // REGISTRO DE TRIAJE 
     Route::post('/dashboard/triage', [DashboardController::class, 'storeTriage'])->name('triage.store');
     Route::get('/triage/result/{triage}', [DashboardController::class, 'showTriage'])->name('triage.show');

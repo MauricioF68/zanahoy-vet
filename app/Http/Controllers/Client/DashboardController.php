@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\RateLimiter;
 
 class DashboardController extends Controller
 {
@@ -96,6 +97,14 @@ class DashboardController extends Controller
      */
     public function storeTriage(Request $request)
     {
+        // 🔒 CANDADO ANTI DOBLE CLIC: Máximo 1 petición cada 15 segundos por usuario
+        if (RateLimiter::tooManyAttempts('triage-create:' . Auth::id(), 1)) {
+            return back(); // Ignora el clic extra en silencio
+        }
+        RateLimiter::hit('triage-create:' . Auth::id(), 15);
+
+
+
         $request->validate([
             'pet_id' => 'required|exists:pets,id',
             'symptoms' => 'required|array|min:1',
@@ -322,6 +331,25 @@ class DashboardController extends Controller
             'inValidation' => $inValidation,
             'paidHistory' => $paidHistory
         ]);
+    }
+
+    /**
+     * CANCELAR TRIAJE: El cliente aborta la solicitud (Escudo Manual)
+     */
+    public function cancelTriage($id)
+    {
+        $triage = Triage::where('id', $id)->where('user_id', Auth::id())->firstOrFail();
+
+        // Evitamos que cancelen si ya están siendo atendidos
+        if ($triage->status === 'completed') {
+            return back()->with('error', 'El caso ya fue finalizado, no puedes cancelarlo.');
+        }
+
+        $triage->update([
+            'status' => 'cancelled' // Estado que lo oculta de todos los radares
+        ]);
+
+        return redirect()->route('dashboard')->with('message', 'La solicitud fue cancelada exitosamente.');
     }
 
 

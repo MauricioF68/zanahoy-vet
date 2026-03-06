@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from '@inertiajs/react';
+import GlobalToast from '@/Components/GlobalToast';
 import ApplicationLogo from '@/Components/ApplicationLogo';
 
 export default function ClientLayout({ user, header, children }) {
@@ -119,6 +120,7 @@ export default function ClientLayout({ user, header, children }) {
                     {children}
                 </main>
             </div>
+            <GlobalToast /> 
         </div>
     );
 }

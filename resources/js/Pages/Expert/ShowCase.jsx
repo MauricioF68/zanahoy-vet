@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Head, router, useForm } from '@inertiajs/react';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import ExpertLayout from '@/Layouts/ExpertLayout'; // 👈 Corregido al Layout correcto
 import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
+import toast from 'react-hot-toast'; // 👈 Importamos el sistema de notificaciones
 
 export default function ShowCase({ auth, triage }) {
     const [timeLeft, setTimeLeft] = useState(60); 
@@ -15,17 +16,32 @@ export default function ShowCase({ auth, triage }) {
         medical_instructions: ''
     });
     
+    // --- 🩺 EL LATIDO INTELIGENTE Y DETECCIÓN DE CANCELACIÓN ---
     useEffect(() => {
-        const needsUpdate = triage.status === 'waiting_decision' || triage.status === 'pending_payment';
+        // 1. EL MODELO UBER: Si el cliente canceló, pateamos al experto al radar
+        if (triage.status === 'cancelled') {
+            toast.error('🚨 El cliente ha cancelado la solicitud de emergencia.', {
+                duration: 8000,
+                style: { fontWeight: 'bold', padding: '16px', fontSize: '1.1rem' }
+            });
+            // Lo enviamos de vuelta al Radar
+            router.get(route('expert.dashboard'));
+            return;
+        }
+
+        // 2. Mantenemos el latido activo mientras NO esté completado ni cancelado.
+        // Incluimos 'in_progress' para que el doctor se entere si el cliente huye estando en la sala.
+        const isLive = ['waiting_decision', 'pending_payment', 'in_progress'].includes(triage.status);
         
-        if (needsUpdate) {
+        if (isLive) {
             const interval = setInterval(() => {
                 router.reload({ only: ['triage'] });
-            }, 3000); 
+            }, 4000); // Revisamos cada 4 segundos
             return () => clearInterval(interval);
         }
-    }, [triage.status])
+    }, [triage.status]);
 
+    // Temporizador de espera para el caso crítico
     useEffect(() => {
         if (triage.status === 'waiting_decision' && timeLeft > 0) {
             const timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
@@ -46,7 +62,7 @@ export default function ShowCase({ auth, triage }) {
     const goneToClinic = triage.user_decision === 'goto_clinic';
 
     return (
-        <AuthenticatedLayout user={auth.user}>
+        <ExpertLayout user={auth.user}>
             <Head title={`Atendiendo a ${triage.pet.name}`} />
 
             <div className="py-12">
@@ -100,7 +116,7 @@ export default function ShowCase({ auth, triage }) {
                                     ) : (
                                         <>
                                             <h2 className="text-lg font-bold text-gray-700">Tiempo Agotado</h2>
-                                            <a href={route('expert.dashboard')} className="mt-4 inline-block bg-gray-600 text-white px-4 py-2 rounded-lg font-bold">Liberar Caso</a>
+                                            <a href={route('expert.dashboard')} className="mt-4 inline-block bg-gray-600 text-white px-4 py-2 rounded-lg font-bold">Volver al Radar</a>
                                         </>
                                     )}
                                 </div>
@@ -200,6 +216,6 @@ export default function ShowCase({ auth, triage }) {
 
                 </div>
             </div>
-        </AuthenticatedLayout>
+        </ExpertLayout>
     );
 }

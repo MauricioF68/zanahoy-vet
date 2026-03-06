@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Head, useForm, router, usePage, Link } from '@inertiajs/react';
-import ClientLayout from '@/Layouts/ClientLayout'; // NUEVO LAYOUT
+import { Head, useForm, router, Link } from '@inertiajs/react';
+import ClientLayout from '@/Layouts/ClientLayout'; 
 import Modal from '@/Components/Modal';
 import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
@@ -9,9 +9,6 @@ import SecondaryButton from '@/Components/SecondaryButton';
 
 export default function Dashboard({ auth, pets, userName, speciesList, symptomCategories }) {
     
-    // Extraer alertas del servidor
-    const { flash } = usePage().props;
-
     // ESTADOS DE LOS MODALES
     const [showPetModal, setShowPetModal] = useState(false);
     const [showTriageModal, setShowTriageModal] = useState(false);
@@ -19,9 +16,6 @@ export default function Dashboard({ auth, pets, userName, speciesList, symptomCa
     const [filteredCategories, setFilteredCategories] = useState([]);
 
     // --- MAGIA: DETECTAR CONSULTAS ACTIVAS ---
-    // Aquí el sistema revisará si alguna mascota de este dueño está "en progreso"
-    // NOTA: Para que esto funcione 100%, tu backend (DashboardController) deberá enviarnos 
-    // una variable `activeConsultations` con los casos en curso. Lo simularemos por ahora.
     const activeConsultations = pets.flatMap(pet => pet.triages || []).filter(t => t.status === 'in_progress');
 
     useEffect(() => {
@@ -34,7 +28,7 @@ export default function Dashboard({ auth, pets, userName, speciesList, symptomCa
             
             return () => clearInterval(interval);
         }
-    }, [activeConsultations.length]); // Depende de la cantidad de alertas
+    }, [activeConsultations.length]); 
 
 
     // FORMULARIO NUEVA MASCOTA
@@ -86,7 +80,7 @@ export default function Dashboard({ auth, pets, userName, speciesList, symptomCa
 
     // --- ACCIÓN: RECONECTAR A LA LLAMADA ---
     const handleRejoinCall = (link) => {
-        window.open(link, '_blank'); // Abre en nueva pestaña sin salir de aquí
+        window.open(link, '_blank'); 
     };
 
     return (
@@ -96,14 +90,7 @@ export default function Dashboard({ auth, pets, userName, speciesList, symptomCa
             <div className="py-8">
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
                     
-                    {/* --- ALERTAS DEL SISTEMA --- */}
-                    {flash?.message && (
-                        <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-sm mx-4 sm:mx-0">
-                            {flash.message}
-                        </div>
-                    )}
-
-                    {/* --- BANNER DE VIDEOLLAMADA ACTIVA (LA PROPUESTA QUE PEDISTE) --- */}
+                    {/* --- BANNER DE VIDEOLLAMADA ACTIVA --- */}
                     {activeConsultations.length > 0 && activeConsultations.map(consultation => (
                         <div key={consultation.id} className="bg-red-600 text-white rounded-xl shadow-2xl p-6 flex flex-col md:flex-row items-center justify-between animate-pulse mx-4 sm:mx-0">
                             <div className="flex items-center mb-4 md:mb-0">
@@ -179,7 +166,6 @@ export default function Dashboard({ auth, pets, userName, speciesList, symptomCa
             <Modal show={showPetModal} onClose={() => setShowPetModal(false)}>
                 <form onSubmit={submitPet} className="p-6 bg-white">
                     <h2 className="text-2xl font-black text-gray-800 mb-6 border-b pb-2">Registrar Paciente 🐾</h2>
-                    {/* ... (Tu formulario de mascotas se queda exactamente igual) ... */}
                     <div className="space-y-4">
                         <div>
                             <InputLabel value="Nombre" />
@@ -187,7 +173,7 @@ export default function Dashboard({ auth, pets, userName, speciesList, symptomCa
                         </div>
                         <div>
                             <InputLabel value="Tipo de Animal" />
-                            <select value={petData.type} onChange={e => setPetData('type', e.target.value)} className="w-full border-gray-300 rounded-md" required>
+                            <select value={petData.type} onChange={e => setPetData('type', e.target.value)} className="w-full border-gray-300 rounded-md shadow-sm" required>
                                 <option value="" disabled>Selecciona...</option>
                                 {speciesList.map(s => <option key={s.id} value={s.slug}>{s.name}</option>)}
                             </select>
@@ -207,7 +193,6 @@ export default function Dashboard({ auth, pets, userName, speciesList, symptomCa
             {/* --- MODAL 2: TRIAJE DE EMERGENCIA --- */}
             <Modal show={showTriageModal} onClose={() => setShowTriageModal(false)} maxWidth="2xl">
                  <form onSubmit={submitTriage} className="p-6">
-                    {/* ... (Tu formulario de triaje se queda exactamente igual) ... */}
                     <div className="mb-6 border-b pb-4">
                         <h2 className="text-2xl font-black text-red-600">TRIAJE DE EMERGENCIA 🚑</h2>
                         <p className="text-gray-600">Paciente: <span className="font-bold">{selectedPet?.name}</span></p>
@@ -218,7 +203,7 @@ export default function Dashboard({ auth, pets, userName, speciesList, symptomCa
                                 <h4 className="font-bold text-slate-800 mb-2">{cat.icon} {cat.name}</h4>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     {cat.symptoms.map(sym => (
-                                        <div key={sym.id} onClick={() => toggleSymptom(sym.id)} className={`cursor-pointer p-3 rounded-xl border-2 transition-all ${triageData.symptoms.includes(sym.id) ? 'border-red-500 bg-red-50 font-bold' : 'border-gray-200'}`}>
+                                        <div key={sym.id} onClick={() => toggleSymptom(sym.id)} className={`cursor-pointer p-3 rounded-xl border-2 transition-all ${triageData.symptoms.includes(sym.id) ? 'border-red-500 bg-red-50 font-bold' : 'border-gray-200 hover:border-red-200'}`}>
                                             {sym.name}
                                         </div>
                                     ))}
@@ -228,9 +213,16 @@ export default function Dashboard({ auth, pets, userName, speciesList, symptomCa
                     </div>
                     <div className="mt-6 flex justify-end border-t pt-4">
                         <SecondaryButton onClick={() => setShowTriageModal(false)} className="mr-3">Cancelar</SecondaryButton>
-                        <PrimaryButton className="bg-red-600 hover:bg-red-700" disabled={processingTriage || triageData.symptoms.length === 0}>
-                            SOLICITAR AYUDA AHORA
+                        
+                        {/* 👇 AQUÍ ESTÁ EL CANDADO VISUAL ANTI-DOBLE CLIC 👇 */}
+                        <PrimaryButton 
+                            className="bg-red-600 hover:bg-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed" 
+                            disabled={processingTriage || triageData.symptoms.length === 0}
+                        >
+                            {processingTriage ? '⏳ PROCESANDO...' : '🚑 SOLICITAR AYUDA AHORA'}
                         </PrimaryButton>
+                        {/* 👆 FIN DEL CANDADO 👆 */}
+
                     </div>
                 </form>
             </Modal>

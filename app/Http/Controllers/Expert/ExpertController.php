@@ -24,6 +24,7 @@ class ExpertController extends Controller
                 $q->whereNull('user_decision')
                   ->orWhere('user_decision', '!=', 'goto_clinic');
             })
+            ->where('created_at', '>=', now()->subMinutes(15))
             ->orderByRaw("FIELD(priority, 'critical', 'medium', 'low')")
             ->latest()
             ->get();
