@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Head, router, useForm } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import toast from 'react-hot-toast'; // 👈 Importamos el toast para avisos en tiempo real
+import toast from 'react-hot-toast'; 
 
 export default function TriageResult({ auth, triage }) {
     const [stopPolling, setStopPolling] = useState(false);
@@ -14,24 +14,45 @@ export default function TriageResult({ auth, triage }) {
     const isMedium = triage.priority === 'medium';
     const hasUploaded = !!triage.payment_proof_path;
 
+    // --- LATIDO MEJORADO (Expulsión Amigable) ---
     useEffect(() => {
-        if (hasUploaded && !triage.meeting_link && !stopPolling) {
-            const safetyTimer = setTimeout(() => {
-                setStopPolling(true);
-                // Usamos toast elegante en vez de un texto feo
-                toast.error("El tiempo de búsqueda se ha agotado. Si el doctor no responde, puedes cancelar la solicitud.", {
-                    duration: 6000,
-                    icon: '⏳'
-                });
-            }, 300000); // 5 min
+        // 1. REGLA DE SALIDA: Si el doctor ya cerró el caso, lo mandamos al Dashboard
+        if (triage.status === 'completed') {
+            toast.success("La consulta ha finalizado. El diagnóstico ha sido guardado en el historial de tu mascota.", {
+                duration: 6000,
+            });
+            router.get(route('dashboard'));
+            return; // Detenemos el código
+        }
+
+        // 2. Mantenemos el latido si ya subió voucher Y el caso no está terminado ni cancelado
+        const isLive = hasUploaded && !['cancelled', 'completed'].includes(triage.status);
+
+        if (isLive && !stopPolling) {
             
+            // Temporizador de 5 min solo si AUN no hay link
+            let safetyTimer;
+            if (!triage.meeting_link) {
+                safetyTimer = setTimeout(() => {
+                    setStopPolling(true);
+                    toast.error("El tiempo de búsqueda se ha agotado. Si el doctor no responde, puedes cancelar la solicitud.", {
+                        duration: 6000,
+                        icon: '⏳'
+                    });
+                }, 300000); 
+            }
+            
+            // El latido constante (cada 5 seg)
             const heartbeat = setInterval(() => {
                 router.reload({ only: ['triage'] });
             }, 5000); 
             
-            return () => { clearTimeout(safetyTimer); clearInterval(heartbeat); };
+            return () => { 
+                if (safetyTimer) clearTimeout(safetyTimer); 
+                clearInterval(heartbeat); 
+            };
         }
-    }, [hasUploaded, triage.meeting_link, stopPolling]);
+    }, [triage.status, hasUploaded, triage.meeting_link, stopPolling]);
 
     const handleFileChange = (e) => setData('payment_proof', e.target.files[0]);
 
@@ -40,7 +61,6 @@ export default function TriageResult({ auth, triage }) {
         post(route('triage.payment'), { preserveScroll: true });
     };
 
-    // LÓGICA DE CANCELACIÓN (Con confirmación nativa pero limpia)
     const handleCancel = () => {
         if (confirm('¿Estás seguro que deseas cancelar esta solicitud?')) {
             router.post(route('triage.cancel', triage.id));
@@ -68,6 +88,9 @@ export default function TriageResult({ auth, triage }) {
                                 <a href={triage.meeting_link} target="_blank" className="mt-4 block w-full bg-orange-600 text-white text-xl font-bold py-4 rounded-xl hover:bg-orange-700 transition shadow-lg">
                                     ENTRAR A VIDEOLLAMADA
                                 </a>
+                                <p className="text-sm text-gray-500 mt-4">
+                                    El sistema te llevará al inicio automáticamente cuando la consulta termine.
+                                </p>
                             </div>
                         ) : hasUploaded ? (
                             <div>
@@ -109,7 +132,6 @@ export default function TriageResult({ auth, triage }) {
                                 </button>
                             </form>
 
-                            {/* NUEVO BOTÓN CANCELAR (Diseño fantasma/outline) */}
                             <div className="mt-10 border-t border-slate-700 pt-6">
                                 <button 
                                     onClick={handleCancel} 
@@ -125,7 +147,6 @@ export default function TriageResult({ auth, triage }) {
                             <h2 className="text-3xl font-black mb-2">¡Comprobante Enviado!</h2>
                             <p className="text-slate-400 text-lg">Mantente atento, tu experto se conectará pronto.</p>
                             
-                            {/* BOTÓN CANCELAR MIENTRAS ESPERA */}
                             <button 
                                 onClick={handleCancel} 
                                 className="mt-12 border-2 border-slate-700 text-slate-400 font-bold py-3 px-8 rounded-xl hover:border-red-500 hover:text-red-400 hover:bg-red-500/10 transition-all inline-flex justify-center items-center"

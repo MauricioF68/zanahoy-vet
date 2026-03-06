@@ -37,7 +37,14 @@ class DashboardController extends Controller
 
         // 1. Mascotas del usuario (¡AHORA CARGANDO SU HISTORIAL MÉDICO!)
         $pets = Pet::with(['triages' => function($query) {
-            $query->orderBy('created_at', 'desc'); // Traemos las consultas más recientes primero
+            $query->orderBy('created_at', 'desc') // Traemos las consultas más recientes primero
+            ->where(function($q) {
+                      $q->where('status', '!=', 'in_progress') // Trae los que no están en progreso
+                        ->orWhere(function($subq) {
+                            $subq->where('status', 'in_progress')
+                                 ->where('created_at', '>=', now()->subMinutes(60)); // Y los en progreso recientes
+                        });
+                    });            
         }])
         ->where('user_id', $user->id)
         ->latest()

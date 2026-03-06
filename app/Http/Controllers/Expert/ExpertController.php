@@ -29,8 +29,14 @@ class ExpertController extends Controller
             ->latest()
             ->get();
 
+            $activeCases = Triage::with(['pet', 'user'])
+            ->where('expert_id', \Illuminate\Support\Facades\Auth::id())
+            ->where('status', 'in_progress')
+            ->get();
+
         return Inertia::render('Expert/Dashboard', [
-            'availableCases' => $availableCases
+            'availableCases' => $availableCases,
+            'activeCases' => $activeCases
         ]);
     }
 

@@ -1,20 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { Head, useForm, router, usePage } from '@inertiajs/react';
+import { Head, useForm, router, usePage, Link } from '@inertiajs/react';
 import ExpertLayout from '@/Layouts/ExpertLayout';
 
-export default function Dashboard({ auth, availableCases }) {
+export default function Dashboard({ auth, availableCases, activeCases = [] }) {
     const { post, processing } = useForm();
     const { flash } = usePage().props;
 
     // Estado local para simular si el doctor está "En Guardia" (Para futuras funciones)
     const [isOnDuty, setIsOnDuty] = useState(true);
 
-    // --- POLLING ORIGINAL (NO TOCADO) ---
+    // --- POLLING MEJORADO (Ahora también escucha a los activeCases) ---
     useEffect(() => {
         if (processing || !isOnDuty) return; 
 
         const interval = setInterval(() => {
-            router.reload({ only: ['availableCases'], preserveState: true, preserveScroll: true });
+            router.reload({ only: ['availableCases', 'activeCases'], preserveState: true, preserveScroll: true });
         }, 5000);
         
         return () => clearInterval(interval);
@@ -38,7 +38,32 @@ export default function Dashboard({ auth, availableCases }) {
 
             <div className="max-w-7xl mx-auto space-y-6">
                 
-                {/* --- NUEVO: PANEL DE MÉTRICAS RÁPIDAS --- */}
+                {/* 🚨 NUEVO: BANNER DE CASOS SIN CERRAR (RECONEXIÓN) 🚨 */}
+                {activeCases.length > 0 && (
+                    <div className="mb-6 space-y-4">
+                        {activeCases.map(activeCase => (
+                            <div key={activeCase.id} className="bg-red-600 rounded-2xl shadow-lg p-6 flex flex-col md:flex-row items-center justify-between border-4 border-red-400 animate-pulse">
+                                <div className="flex items-center mb-4 md:mb-0 text-white">
+                                    <span className="text-4xl mr-4">⚠️</span>
+                                    <div>
+                                        <h3 className="text-xl font-black uppercase tracking-wider">¡Tienes una consulta sin finalizar!</h3>
+                                        <p className="text-red-100 font-medium">
+                                            Olvidaste guardar el diagnóstico de <span className="font-bold text-white">{activeCase.pet.name}</span> (Dueño: {activeCase.user.name}).
+                                        </p>
+                                    </div>
+                                </div>
+                                <Link 
+                                    href={route('expert.case.show', activeCase.id)}
+                                    className="bg-white text-red-700 font-black px-8 py-4 rounded-xl shadow-xl hover:bg-red-50 transition transform hover:scale-105 w-full md:w-auto text-center"
+                                >
+                                    VOLVER A LA SALA ➔
+                                </Link>
+                            </div>
+                        ))}
+                    </div>
+                )}
+                
+                {/* --- PANEL DE MÉTRICAS RÁPIDAS --- */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="bg-white rounded-2xl shadow-sm p-6 flex items-center justify-between border border-slate-100 border-l-4 border-l-indigo-500">
                         <div>
@@ -73,7 +98,7 @@ export default function Dashboard({ auth, availableCases }) {
                     <div className="bg-white rounded-2xl shadow-sm p-6 flex items-center justify-between border border-slate-100">
                         <div>
                             <p className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Tu Billetera (Mes)</p>
-                            {/* Este valor será dinámico cuando hagamos el módulo de finanzas, por ahora es un placeholder para motivar */}
+                            {/* Este valor será dinámico cuando hagamos el módulo de finanzas */}
                             <h3 className="text-xl font-black text-slate-800">Ver Detalles ➔</h3>
                         </div>
                         <div className="w-12 h-12 bg-green-50 rounded-full flex items-center justify-center text-green-600 text-2xl">

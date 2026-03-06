@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Head, router, useForm } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import toast from 'react-hot-toast'; // 👈 Importamos el toast para avisos en tiempo real
+import toast from 'react-hot-toast'; 
 
 export default function CriticalResult({ auth, triage }) {
     const [stopPolling, setStopPolling] = useState(false);
@@ -10,24 +10,45 @@ export default function CriticalResult({ auth, triage }) {
         decision: ''
     });
 
+    // --- LATIDO MEJORADO (Expulsión Amigable) ---
     useEffect(() => {
-        if (triage.user_decision === 'request_accompaniment' && !triage.meeting_link && !stopPolling) {
-            const safetyTimer = setTimeout(() => {
-                setStopPolling(true);
-                // Adiós al alert feo, hola Toast elegante
-                toast.error("El radar no encuentra un experto disponible en este momento. Por favor, recarga la página o dirígete a la clínica más cercana.", {
-                    duration: 8000,
-                    icon: '🚨'
-                });
-            }, 300000); 
+        // 1. REGLA DE SALIDA: Si el doctor ya cerró el caso, lo mandamos al Dashboard
+        if (triage.status === 'completed') {
+            toast.success("La consulta ha finalizado. El diagnóstico ha sido guardado en el historial de tu mascota.", {
+                duration: 6000,
+            });
+            router.get(route('dashboard'));
+            return; // Detenemos la ejecución aquí
+        }
 
+        // 2. Mantenemos el latido mientras el usuario haya pedido ayuda Y el caso no esté cancelado ni completado
+        const isLive = triage.user_decision === 'request_accompaniment' && !['cancelled', 'completed'].includes(triage.status);
+
+        if (isLive && !stopPolling) {
+            
+            // Solo lanzamos la alerta de "Tiempo agotado" si AUN no hay enlace (buscando doctor)
+            let safetyTimer;
+            if (!triage.meeting_link) {
+                safetyTimer = setTimeout(() => {
+                    setStopPolling(true);
+                    toast.error("El radar no encuentra un experto disponible en este momento. Por favor, recarga la página o dirígete a la clínica más cercana.", {
+                        duration: 8000,
+                        icon: '🚨'
+                    });
+                }, 300000); // 5 minutos buscando
+            }
+
+            // El latido constante (cada 4 seg) para saber si le asignan doctor O si el doctor ya terminó
             const heartbeat = setInterval(() => {
                 router.reload({ only: ['triage'] });
             }, 4000);
 
-            return () => { clearTimeout(safetyTimer); clearInterval(heartbeat); };
+            return () => { 
+                if (safetyTimer) clearTimeout(safetyTimer); 
+                clearInterval(heartbeat); 
+            };
         }
-    }, [triage.user_decision, triage.meeting_link, stopPolling]);
+    }, [triage.status, triage.user_decision, triage.meeting_link, stopPolling]);
 
     const handleDecision = (decision) => {
         setData('decision', decision);
@@ -107,7 +128,9 @@ export default function CriticalResult({ auth, triage }) {
 
                     {triage.user_decision === 'request_accompaniment' && (
                         <div className="bg-white text-slate-900 rounded-3xl p-8 w-full max-w-lg shadow-2xl">
-                            <h3 className="text-2xl font-black mb-2 text-center">Buscando Especialista...</h3>
+                            <h3 className="text-2xl font-black mb-2 text-center">
+                                {triage.meeting_link ? 'Consulta en Curso' : 'Buscando Especialista...'}
+                            </h3>
                             
                             {triage.meeting_link ? (
                                 <div className="mt-6 animate-in zoom-in duration-300">
@@ -117,6 +140,9 @@ export default function CriticalResult({ auth, triage }) {
                                     <a href={triage.meeting_link} target="_blank" className="block w-full bg-red-600 text-white text-2xl font-black py-5 rounded-2xl hover:bg-red-700 text-center animate-pulse shadow-xl shadow-red-500/30">
                                         📹 ENTRAR A LA SALA AHORA
                                     </a>
+                                    <p className="text-center text-sm text-slate-500 mt-4">
+                                        Esta pantalla se cerrará automáticamente cuando el doctor finalice la consulta.
+                                    </p>
                                 </div>
                             ) : (
                                 <div className="flex flex-col items-center space-y-6 mt-8">
