@@ -11,6 +11,7 @@ export default function ClientLayout({ user, header, children }) {
         { name: 'Mi Panel', route: 'dashboard', icon: '🏠' },
         { name: 'Historial Clínico', route: 'client.history', icon: '📂' },
         { name: 'Mis Pagos', route: 'client.payments', icon: '💳' },
+        { name: 'Mis Datos', route: 'client.profile.edit', icon: '👤' },
     ];
 
     return (

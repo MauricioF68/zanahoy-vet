@@ -24,6 +24,7 @@ class DashboardController extends Controller
      */
     public function index()
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
 
         // 🛑 EL GUARDIÁN DE ROLES 🛑
@@ -34,6 +35,10 @@ class DashboardController extends Controller
         if ($user->role === 'admin') {
             return redirect()->route('admin.dashboard');
         }
+
+        // 🛡️ NUEVO: Verificamos si el perfil está incompleto
+        $user->load('clientProfile');
+        $isProfileIncomplete = empty($user->phone) || empty($user->clientProfile?->dni) || empty($user->clientProfile?->address);
 
         // 1. Mascotas del usuario (¡AHORA CARGANDO SU HISTORIAL MÉDICO!)
         $pets = Pet::with(['triages' => function($query) {

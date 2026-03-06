@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\RequestController;
 use App\Http\Controllers\Client\DashboardController; // Importación unificada
 use App\Http\Controllers\Admin\SpeciesController;
 use App\Http\Controllers\Expert\ExpertProfileController;
+use App\Http\Controllers\Client\ClientProfileController;
 use Inertia\Inertia;
 
 /*
@@ -79,9 +80,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/triage/critical/{triage}', [DashboardController::class, 'showCriticalTriage'])->name('triage.critical');
 
     // Perfil de Usuario
+    Route::get('/mi-perfil', [ClientProfileController::class, 'edit'])->name('client.profile.edit');
+    Route::post('/mi-perfil', [ClientProfileController::class, 'update'])->name('client.profile.update');
+
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    
 
     // HISTORIAL MÉDICO DE LA MASCOTA    
     Route::get('/historial-clinico', [DashboardController::class, 'generalHistory'])->name('client.history');

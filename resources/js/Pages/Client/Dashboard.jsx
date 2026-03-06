@@ -7,7 +7,7 @@ import TextInput from '@/Components/TextInput';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 
-export default function Dashboard({ auth, pets, userName, speciesList, symptomCategories }) {
+export default function Dashboard({ auth, pets, userName, speciesList, symptomCategories, isProfileIncomplete }) {
     
     // ESTADOS DE LOS MODALES
     const [showPetModal, setShowPetModal] = useState(false);
@@ -108,6 +108,25 @@ export default function Dashboard({ auth, pets, userName, speciesList, symptomCa
                             </button>
                         </div>
                     ))}
+
+                    {/* 🚨 NUEVO: EL EMPUJÓN SUAVE (NUDGE) PARA EL PERFIL 🚨 */}
+                    {isProfileIncomplete && (
+                        <div className="bg-orange-50 border-l-4 border-orange-500 p-4 rounded-r-xl shadow-sm mx-4 sm:mx-0 flex flex-col sm:flex-row justify-between items-center animate-in slide-in-from-top duration-500">
+                            <div className="flex items-center text-orange-800 mb-3 sm:mb-0">
+                                <span className="text-2xl mr-3">⚠️</span>
+                                <div>
+                                    <p className="font-bold">Tu perfil médico está incompleto</p>
+                                    <p className="text-sm">Agrega tu teléfono y DNI para agilizar tus emergencias y recibos de pago.</p>
+                                </div>
+                            </div>
+                            <Link 
+                                href={route('client.profile.edit')}
+                                className="bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-6 rounded-lg text-sm transition shadow-md w-full sm:w-auto text-center"
+                            >
+                                Completar Datos
+                            </Link>
+                        </div>
+                    )}
                     
                     {/* ENCABEZADO */}
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-4 sm:px-0 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
